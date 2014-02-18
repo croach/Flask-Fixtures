@@ -5,6 +5,7 @@ import os
 import sys
 
 from flask import current_app
+from sqlalchemy import Table
 
 try:
   import simplejson as json
@@ -18,25 +19,65 @@ except ImportError:
   YAML_INSTALLED = False
 
 
-
 class Loader(object):
+  """A callable object that handles the loading of fixtures into the database.
+  """
 
   def __init__(self, filenames):
     self.filenames = filenames
 
+
   def __call__(self, parent):
-    fixtures_dirs = parent.app.config['FIXTURES_DIRS']
-    for filename in self.filenames:
-      for directory in fixtures_dirs:
-        filepath = os.path.join(directory, filename)
-        if os.path.exists(filepath):
-          fixtures = self.load_file(filepath)
-          # TODO load the data into the database
-          self.load_fixtures(parent.db, fixtures)
-          break
-      else:
-        # TODO should we raise an error here instead?
-        print("Error loading %s" % filename, file=sys.stderr)
+    if not hasattr(self, 'loader'):
+      self.loader = self.create_loader(parent)
+    try:
+      self.loader.next()
+    except StopIteration:
+      del self.loader
+
+
+  def create_loader(self, parent):
+    """Creates a function that handles setup, loading, and teardown of the db.
+
+    Returns a generator function that, when called the first time, sets up the
+    database (i.e., creates the tables, etc.) and loads all fixtures into it,
+    and, when called the second time, tears the database down.
+    """
+    def _loader():
+      # Setup the database and load all of the fixtures
+      self.setup_db(parent.db)
+      fixtures_dirs = parent.app.config['FIXTURES_DIRS']
+      for filename in self.filenames:
+        for directory in fixtures_dirs:
+          filepath = os.path.join(directory, filename)
+          if os.path.exists(filepath):
+            fixtures = self.load_file(filepath)
+            # TODO load the data into the database
+            self.load_fixtures(parent.db, fixtures)
+            break
+        else:
+          # TODO should we raise an error here instead?
+          print("Error loading %s" % filename, file=sys.stderr)
+
+      # Pause for the test(s) to be run
+      (yield)
+
+      # Tear the database down after all tests have finished
+      self.teardown_db(parent.db)
+    return _loader()
+
+
+  def setup_db(self, db):
+    print("setting up database...")
+    db.create_all()
+    # TODO why do we call this?
+    db.session.rollback()
+
+
+  def teardown_db(self, db):
+    print("tearing down database...")
+    db.session.expunge_all()
+    db.drop_all()
 
 
   def load_file(self, filename):
@@ -44,6 +85,8 @@ class Loader(object):
     """
     name, extension = os.path.splitext(filename)
     if extension.lower() in ('.yaml', '.yml'):
+      if not YAML_INSTALLED:
+        raise Exception("Could not load fixture '%s'; PyYAML must first be installed")
       loader = yaml.load
     elif extension.lower() in ('.json', '.js'):
       loader = json.load
@@ -58,7 +101,7 @@ class Loader(object):
           return json.load(f)
         except Exception:
           pass
-        raise Exception("Could not load fixture '%s': unsupported format")
+        raise Exception("Could not load fixture '%s'; unsupported format")
     with open(filename, 'r') as fin:
       return loader(fin)
 
@@ -66,78 +109,24 @@ class Loader(object):
   def load_fixtures(self, db, fixtures):
     """Loads the given fixtures into the database.
     """
+    conn = db.engine.connect()
+    metadata = db.metadata
+
     for fixture in fixtures:
 
       if 'table' in fixture:
-        table = fixture.get('table')
+        table = Table(fixture.get('table'), metadata)
 
 
       elif 'model' in fixture:
         model = fixture.get('model')
 
 
-
-
-# def load_data(db, fixtures):
-#   """Loads the given fixtures into the database.
-#   """
-#   for fixture in fixtures:
-#     if 'table' in fixture:
-
-#     elif 'model' in fixture:
-#       pass
-
-# def load_fixtures(filename):
-#   """Loads the fixtures found in the given file and returns the resultant dict.
-#   """
-#   name, extension = os.path.splitext(filename)
-#   if extension.lower() in ('.yaml', '.yml'):
-#     loader = yaml.load
-#   elif extension.lower() in ('.json', '.js'):
-#     loader = json.load
-#   else:
-#     # Try both supported formats
-#     def loader(f):
-#       try:
-#         return yaml.load(f)
-#       except Exception:
-#         pass
-#       try:
-#         return json.load(f)
-#       except Exception:
-#         pass
-#       raise Exception("Could not load fixture '%s': unsupported format")
-#   with open(filename, 'r') as fin:
-#     return loader(fin)
-
-
-# def init_database(fixtures):
-#   def _init_database(cls, *args, **kwargs):
-#     fixtures_directory = cls.app.config['FIXTURES_DIRS']
-#     for fixture in fixtures:
-#       for directory in fixtures_directory:
-#         filename = os.path.join(directory, fixture)
-#         if os.path.exists(filename):
-#           data = load_fixtures(filename)
-#           # TODO load the data into the database
-#           import ipdb; ipdb.set_trace()
-#           load_data(data)
-#           print(data)
-#           break
-#       else:
-#         # TODO should we raise an error here instead?
-#         print("Error loading %s" % fixture, file=sys.stderr)
-
-#   return _init_database
-
-
 class MetaFixturesMixin(type):
   def __new__(metaclass, name, bases, attrs):
-
     fixtures = attrs.pop('fixtures', None)
     if fixtures is not None:
-      # attrs['setup_class'] = classmethod(init_database(fixtures))
-      attrs['setup_class'] = classmethod(Loader(fixtures))
+      attrs['setup_class'] = attrs['teardown_class'] = classmethod(Loader(fixtures))
 
     return super(MetaFixturesMixin, metaclass).__new__(metaclass, name, bases, attrs)
 
@@ -152,74 +141,9 @@ class FixturesMixin(object):
   def init_app(cls, app, db=None):
     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
     app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
-    app.test = True
+    app.config.setdefault("SQLALCHEMY_DATABASE_URI", 'sqlite://')
+    # app.test = True
+    # app.debug = True
     cls.app = app
     cls.db = db
-
-  # @classmethod
-  # def setUpClass(cls):
-  #     'called once, before any tests'
-  #     print 'class %s' % cls.__name__
-
-  # @classmethod
-  # def tearDownClass(cls):
-  #     'called once, after all tests, if setUpClass successful'
-  #     print 'class %s' % cls.__name__
-
-  # def setUp(self):
-  #     'called multiple times, before every test method'
-  #     self.logPoint()
-
-  # def tearDown(self):
-  #     'called multiple times, after every test method'
-  #     self.logPoint()
-
-
-  # def logPoint(self):
-  #     'utility method to trace control flow'
-  #     callingFunction = inspect.stack()[1][3]
-  #     print('in %s()' % (callingFunction))
-
-
-# def test_case_mixin_maker(app=None, db=None):
-#   TestCaseMixin.app = app
-#   TestCaseMixin.db = db
-
-
-# def init_fixtures_mixin(app, db=None):
-#   if app is not None:
-#     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
-#     app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
-#     # TestCaseMixin.app = app
-#     app.test = True
-#   FixturesMixin.app = app
-#   FixturesMixin.db = db
-#   # .__dict__.update({
-#   #   'app': app,
-#   #   'db': db
-#   # })
-#   return FixturesMixin
-
-
-# class Fixtures(object):
-
-#   def __init__(self, app=None, db=None):
-#     self.TestCaseMixin = type('TestCaseMixin', (object,), {
-#         '__metaclass__': MetaTestCaseMixin,
-#         'fixtures': None,
-#         'app': app,
-#         'db': db
-#       })
-#     self.init_app(app, db)
-#     # self.app = app
-#     # self.db = db
-#     # self.TestCaseMixin = TestCaseMixin
-#     # if app is not None:
-#     #   self.init_app(app)
-
-#   def init_app(self, app, db=None):
-#     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
-#     app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
-#     # TestCaseMixin.app = app
-#     app.test = True
 
