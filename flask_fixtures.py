@@ -28,7 +28,7 @@ def setup(obj):
 
   # Load all of the fixtures
   fixtures_dirs = obj.app.config['FIXTURES_DIRS']
-  for filename in obj.fixtures:
+  for filename in obj._fixtures:
     for directory in fixtures_dirs:
       filepath = os.path.join(directory, filename)
       if os.path.exists(filepath):
@@ -41,6 +41,7 @@ def setup(obj):
 
 
 def teardown(obj):
+  print("tearing down database...")
   obj.db.session.expunge_all()
   obj.db.drop_all()
 
@@ -87,14 +88,20 @@ def load_fixtures(db, fixtures):
 
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
-    if attrs.get('fixtures', None) is not None:
-      parent_setup = attrs.pop('setUpClass', None)
-      parent_teardown = attrs.pop('tearDownClass', None)
+    fixtures = attrs.pop('fixtures', None)
+    class_fixtures = attrs.pop('class_fixtures', None)
+    if fixtures is not None:
+      parent_setup = attrs.pop('setUp', None)
+      parent_teardown = attrs.pop('tearDown', None)
       attrs['setUp'] = meta.fixtures_handler(setup, parent_setup)
       attrs['tearDown'] = meta.fixtures_handler(teardown, parent_teardown)
-
-      # attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
-      # attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
+      attrs['_fixtures'] = fixtures
+    elif class_fixtures is not None:
+      parent_setup = attrs.pop('setUpClass', None)
+      parent_teardown = attrs.pop('tearDownClass', None)
+      attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
+      attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
+      attrs['_fixtures'] = class_fixtures
 
     return super(MetaFixturesMixin, meta).__new__(meta, name, bases, attrs)
 
