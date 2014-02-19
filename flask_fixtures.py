@@ -37,7 +37,7 @@ def setup(obj):
         break
     else:
       # TODO should we raise an error here instead?
-      print("Error loading %s" % filename, file=sys.stderr)
+      print("Error loading '%s'. File could not be found." % filename, file=sys.stderr)
 
 
 def teardown(obj):
@@ -78,13 +78,11 @@ def load_fixtures(db, fixtures):
   metadata = db.metadata
 
   for fixture in fixtures:
-
-    if 'table' in fixture:
-      table = Table(fixture.get('table'), metadata)
-
-
-    elif 'model' in fixture:
-      model = fixture.get('model')
+    table = Table(fixture.get('table'), metadata)
+    if 'records' in fixture:
+      conn.execute(table.insert(), fixture['records'])
+    else:
+      conn.execute(table.insert(), **fixture['fields'])
 
 
 class MetaFixturesMixin(type):
@@ -92,10 +90,11 @@ class MetaFixturesMixin(type):
     if attrs.get('fixtures', None) is not None:
       parent_setup = attrs.pop('setUpClass', None)
       parent_teardown = attrs.pop('tearDownClass', None)
-      attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
-      attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
-      # attrs['setUp'] = meta.fixtures_handler(setup(fixtures), parent_setup)
-      # attrs['tearDown'] = meta.fixtures_handler(teardown, parent_teardown)
+      attrs['setUp'] = meta.fixtures_handler(setup, parent_setup)
+      attrs['tearDown'] = meta.fixtures_handler(teardown, parent_teardown)
+
+      # attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
+      # attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
 
     return super(MetaFixturesMixin, meta).__new__(meta, name, bases, attrs)
 
@@ -104,8 +103,8 @@ class MetaFixturesMixin(type):
   def fixtures_handler(fn, parent_fn=None):
     parent_fn = (lambda obj: None) if parent_fn is None else parent_fn
     def handler(obj):
-      parent_fn.__get__(obj)()
       fn(obj)
+      parent_fn.__get__(obj)()
     return handler
 
 
