@@ -19,29 +19,25 @@ except ImportError:
   YAML_INSTALLED = False
 
 
-def setup(fixtures):
-  """Creates a function that handles the setup and loading of the db.
-  """
-  def _setup(obj):
-    # Setup the database
-    print("setting up database...")
-    obj.db.create_all()
-    # TODO why do we call this?
-    obj.db.session.rollback()
+def setup(obj):
+  # Setup the database
+  print("setting up database...")
+  obj.db.create_all()
+  # TODO why do we call this?
+  obj.db.session.rollback()
 
-    # Load all of the fixtures
-    fixtures_dirs = obj.app.config['FIXTURES_DIRS']
-    for filename in fixtures:
-      for directory in fixtures_dirs:
-        filepath = os.path.join(directory, filename)
-        if os.path.exists(filepath):
-          # TODO load the data into the database
-          load_fixtures(obj.db, load_file(filepath))
-          break
-      else:
-        # TODO should we raise an error here instead?
-        print("Error loading %s" % filename, file=sys.stderr)
-  return _setup
+  # Load all of the fixtures
+  fixtures_dirs = obj.app.config['FIXTURES_DIRS']
+  for filename in obj.fixtures:
+    for directory in fixtures_dirs:
+      filepath = os.path.join(directory, filename)
+      if os.path.exists(filepath):
+        # TODO load the data into the database
+        load_fixtures(obj.db, load_file(filepath))
+        break
+    else:
+      # TODO should we raise an error here instead?
+      print("Error loading %s" % filename, file=sys.stderr)
 
 
 def teardown(obj):
@@ -93,11 +89,10 @@ def load_fixtures(db, fixtures):
 
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
-    fixtures = attrs.pop('fixtures', None)
-    if fixtures is not None:
+    if attrs.get('fixtures', None) is not None:
       parent_setup = attrs.pop('setUpClass', None)
       parent_teardown = attrs.pop('tearDownClass', None)
-      attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup(fixtures), parent_setup))
+      attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
       attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
       # attrs['setUp'] = meta.fixtures_handler(setup(fixtures), parent_setup)
       # attrs['tearDown'] = meta.fixtures_handler(teardown, parent_teardown)
@@ -123,8 +118,11 @@ class FixturesMixin(object):
   @classmethod
   def init_app(cls, app, db=None):
     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
-    app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
-    app.config.setdefault("SQLALCHEMY_DATABASE_URI", 'sqlite://')
+    # app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
+    fixtures_dirs = [default_fixtures_dir] + app.config.get('FIXTURES_DIRS', [])
+    app.config['FIXTURES_DIRS'] = fixtures_dirs
+    # app.config.setdefault("SQLALCHEMY_DATABASE_URI", 'sqlite://:memory:')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
     # app.test = True
     # app.debug = True
     cls.app = app
