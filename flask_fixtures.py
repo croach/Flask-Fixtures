@@ -148,12 +148,29 @@ class MetaFixturesMixin(type):
     exception is raised, if one is found, it is returned, and if none are found,
     a function that calls the default method on each parent class is returned.
     """
+    def call_method(obj, method):
+      """Calls a method as either a class method or an instance method.
+      """
+      # The __get__ method takes an instance and an owner which changes
+      # depending on the calling object. If the calling object is a class,
+      # the instance is None and the owner will be the object itself. If the
+      # calling object is an instance, the instance will be the calling object
+      # and the owner will be its class. For more info on the __get__ method,
+      # see http://docs.python.org/2/reference/datamodel.html#object.__get__.
+      if isinstance(obj, type):
+        instance = None
+        owner = obj
+      else:
+        instance = obj
+        owner = obj.__class__
+      method.__get__(instance, owner)()
+
     # Create a default function that calls the default method on each parent
     default_name = names[0]
     def default_fn(obj):
       for cls in bases:
         if hasattr(cls, default_name):
-          getattr(cls, default_name)()
+          call_method(obj, getattr(cls, default_name))
 
     fns = [(name, attrs[name]) for name in names if name in attrs]
 
@@ -163,12 +180,12 @@ class MetaFixturesMixin(type):
     # If one setup/teardown function was found, return it
     elif len(fns) == 1:
       name, fn = fns[0]
-      return name, lambda obj: fn.__get__(obj)()
+      def child_fn(obj):
+        call_method(obj, fn)
+      return name, child_fn
     # Otherwise, return the default function
     else:
       return default_name, default_fn
-
-    return name, child_fn
 
 
 class FixturesMixin(object):
