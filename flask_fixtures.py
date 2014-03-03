@@ -125,8 +125,15 @@ class FixturesMixin(object):
   def init_app(cls, app, db=None):
     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
     # app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
-    fixtures_dirs = [default_fixtures_dir] + app.config.get('FIXTURES_DIRS', [])
+
+    # All relative paths should be relative to the app's root directory.
+    fixtures_dirs = [default_fixtures_dir]
+    for directory in app.config.get('FIXTURES_DIRS', []):
+      if not os.path.isabs(directory):
+        directory = os.path.join(default_fixtures_dir, directory)
+      fixtures_dirs.append(directory)
     app.config['FIXTURES_DIRS'] = fixtures_dirs
+
     # app.config.setdefault("SQLALCHEMY_DATABASE_URI", 'sqlite://:memory:')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
     # app.test = True
