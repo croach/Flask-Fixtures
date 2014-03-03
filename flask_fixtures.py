@@ -21,7 +21,7 @@ except ImportError:
 
 def setup(obj):
   # Setup the database
-  print("setting up database...")
+  print("setting up the database...")
   obj.db.create_all()
   # TODO why do we call this?
   obj.db.session.rollback()
@@ -41,7 +41,7 @@ def setup(obj):
 
 
 def teardown(obj):
-  print("tearing down database...")
+  print("tearing down the database...")
   obj.db.session.expunge_all()
   obj.db.drop_all()
 
@@ -85,34 +85,90 @@ def load_fixtures(db, fixtures):
     else:
       conn.execute(table.insert(), **fixture['fields'])
 
+CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
+CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
+TEST_SETUP_NAMES = ('setUp',)
+TEST_TEARDOWN_NAMES = ('tearDown',)
 
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
     fixtures = attrs.pop('fixtures', None)
     class_fixtures = attrs.pop('class_fixtures', None)
+
+    # TODO: In the future we may want to support class and test fixtures simultaneously.
+    # This is tough to do since the test fixtures need to be wiped out of the database
+    # after each test and re-inserted back in before each test without affecting the
+    # the class fixtures or any changes to them that the tests have made.
+    if fixtures is not None and class_fixtures is not None:
+      raise RuntimeError("Flask-Fixtures does not currently support the use of both class and test fixtures.")
+
     if fixtures is not None:
-      parent_setup = attrs.pop('setUp', None)
-      parent_teardown = attrs.pop('tearDown', None)
-      attrs['setUp'] = meta.fixtures_handler(setup, parent_setup)
-      attrs['tearDown'] = meta.fixtures_handler(teardown, parent_teardown)
+      setup_name, child_setup = meta.get_child_fn(attrs, TEST_SETUP_NAMES, bases)
+      teardown_name, child_teardown = meta.get_child_fn(attrs, TEST_TEARDOWN_NAMES, bases)
+      attrs[setup_name] = meta.setup_handler(setup, child_setup)
+      attrs[teardown_name] = meta.teardown_handler(teardown, child_teardown)
       attrs['_fixtures'] = fixtures
     elif class_fixtures is not None:
-      parent_setup = attrs.pop('setUpClass', None)
-      parent_teardown = attrs.pop('tearDownClass', None)
-      attrs['setUpClass'] = classmethod(meta.fixtures_handler(setup, parent_setup))
-      attrs['tearDownClass'] = classmethod(meta.fixtures_handler(teardown, parent_teardown))
+      setup_name, child_setup = meta.get_child_fn(attrs, CLASS_SETUP_NAMES, bases)
+      teardown_name, child_teardown = meta.get_child_fn(attrs, CLASS_TEARDOWN_NAMES, bases)
+      attrs[setup_name] = classmethod(meta.setup_handler(setup, child_setup))
+      attrs[teardown_name] = classmethod(meta.teardown_handler(teardown, child_teardown))
       attrs['_fixtures'] = class_fixtures
 
     return super(MetaFixturesMixin, meta).__new__(meta, name, bases, attrs)
 
+  @staticmethod
+  def setup_handler(setup_fixtures_fn, setup_fn):
+    """Returns a function that adds fixtures handling to the setup method.
+
+    Makes sure that fixtures are setup before calling the given setup method.
+    """
+    def handler(obj):
+      setup_fixtures_fn(obj)
+      setup_fn(obj)
+    return handler
 
   @staticmethod
-  def fixtures_handler(fn, parent_fn=None):
-    parent_fn = (lambda obj: None) if parent_fn is None else parent_fn
+  def teardown_handler(teardown_fixtures_fn, teardown_fn):
+    """Returns a function that adds fixtures handling to the teardown method.
+
+    Calls the given teardown method first before calling the fixtures teardown.
+    """
     def handler(obj):
-      fn(obj)
-      parent_fn.__get__(obj)()
+      teardown_fn(obj)
+      teardown_fixtures_fn(obj)
     return handler
+
+  @staticmethod
+  def get_child_fn(attrs, names, bases):
+    """Returns a tuple with a function name and function from the child class.
+
+    Searches the child class's set of methods (i.e., the attrs dict) for all the
+    functions matching the given list of names. If more than one is found, an
+    exception is raised, if one is found, it is returned, and if none are found,
+    a function that calls the default method on each parent class is returned.
+    """
+    # Create a default function that calls the default method on each parent
+    default_name = names[0]
+    def default_fn(obj):
+      for cls in bases:
+        if hasattr(cls, default_name):
+          getattr(cls, default_name)()
+
+    fns = [(name, attrs[name]) for name in names if name in attrs]
+
+    # Raise an error if more than one setup/teardown method is found
+    if len(fns) > 1:
+      raise RuntimeError("Cannot have more than one setup or teardown method per context (class or test).")
+    # If one setup/teardown function was found, return it
+    elif len(fns) == 1:
+      name, fn = fns[0]
+      return name, lambda obj: fn.__get__(obj)()
+    # Otherwise, return the default function
+    else:
+      return default_name, default_fn
+
+    return name, child_fn
 
 
 class FixturesMixin(object):
@@ -124,7 +180,6 @@ class FixturesMixin(object):
   @classmethod
   def init_app(cls, app, db=None):
     default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
-    # app.config.setdefault('FIXTURES_DIRS', [default_fixtures_dir])
 
     # All relative paths should be relative to the app's root directory.
     fixtures_dirs = [default_fixtures_dir]
