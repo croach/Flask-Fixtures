@@ -27,10 +27,10 @@ setup(
     maintainer_email='vthakr@gmail.com',
     description='A fixtures library for testing Flask apps.',
     long_description=README,
-    py_modules=['flask_fixtures'],
+    # py_modules=['flask_fixtures'],
     # if you would be using a package instead use packages instead
     # of py_modules:
-    # packages=['flask_sqlite3'],
+    packages=['flask_fixtures'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
