@@ -108,7 +108,7 @@ def load_fixtures(db, fixtures):
       table = Table(fixture['table'], metadata)
       conn.execute(table.insert(), fixture['records'])
     else:
-      raise ValueError("Fixture object missing either a 'model' or 'table' field")
+      raise ValueError("Fixture missing a 'model' or 'table' field: %s" % json.dumps(fixture))
 
 CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
 CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
