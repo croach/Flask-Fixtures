@@ -218,7 +218,7 @@ class FixturesMixin(object):
     fixtures_dirs = [default_fixtures_dir]
     for directory in app.config.get('FIXTURES_DIRS', []):
       if not os.path.isabs(directory):
-        directory = os.path.join(default_fixtures_dir, directory)
+        directory = os.path.abspath(os.path.join(app.root_path, directory))
       fixtures_dirs.append(directory)
     app.config['FIXTURES_DIRS'] = fixtures_dirs
 
