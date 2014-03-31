@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 
 from __future__ import print_function
 
+import importlib
 import inspect
 import os
 import sys
@@ -95,11 +96,19 @@ def load_fixtures(db, fixtures):
   metadata = db.metadata
 
   for fixture in fixtures:
-    table = Table(fixture.get('table'), metadata)
-    if 'records' in fixture:
+    if 'model' in fixture:
+      module_name, class_name = fixture['model'].rsplit('.', 1)
+      module = importlib.import_module(module_name)
+      model = getattr(module, class_name)
+      for fields in fixture['records']:
+        obj = model(**fields)
+        db.session.add(obj)
+      db.session.commit()
+    elif 'table' in fixture:
+      table = Table(fixture['table'], metadata)
       conn.execute(table.insert(), fixture['records'])
     else:
-      conn.execute(table.insert(), **fixture['fields'])
+      raise ValueError("Fixture object missing either a 'model' or 'table' field")
 
 CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
 CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
