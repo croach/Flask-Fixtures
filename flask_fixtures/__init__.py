@@ -116,6 +116,7 @@ TEST_TEARDOWN_NAMES = ('tearDown',)
 
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
+
     fixtures = attrs.pop('fixtures', None)
     class_fixtures = attrs.pop('class_fixtures', None)
 
@@ -234,11 +235,6 @@ class FixturesMixin(object):
         directory = os.path.abspath(os.path.join(app.root_path, directory))
       fixtures_dirs.append(directory)
     app.config['FIXTURES_DIRS'] = fixtures_dirs
-
-    # app.config.setdefault("SQLALCHEMY_DATABASE_URI", 'sqlite://:memory:')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
-    # app.test = True
-    # app.debug = True
     cls.app = app
     cls.db = db
 
