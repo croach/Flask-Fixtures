@@ -76,8 +76,7 @@ class Fixtures(object):
           self.load_fixtures(self.load_file(filepath))
           break
       else:
-        # TODO should we raise an error here instead?
-        print("Error loading '%s'. File could not be found." % filename, file=sys.stderr)
+        raise IOError("Error loading fixture, '%s' could not be found" % filename)
 
   def teardown(self):
     print("tearing down fixtures...")
