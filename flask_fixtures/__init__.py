@@ -38,7 +38,6 @@ except ImportError:
 
 def setup(obj):
   # Setup the database
-  print("setting up the database...")
   obj.db.create_all()
   # TODO why do we call this?
   obj.db.session.rollback()
@@ -58,7 +57,6 @@ def setup(obj):
 
 
 def teardown(obj):
-  print("tearing down the database...")
   obj.db.session.expunge_all()
   obj.db.drop_all()
 
