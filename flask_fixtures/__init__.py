@@ -114,6 +114,86 @@ TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
 
+
+class Fixtures(object):
+  def __init__(self, app, db):
+    self.init_app(app, db)
+
+  def init_app(self, app, db):
+    default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
+
+    # All relative paths should be relative to the app's root directory.
+    fixtures_dirs = [default_fixtures_dir]
+    for directory in app.config.get('FIXTURES_DIRS', []):
+      if not os.path.isabs(directory):
+        directory = os.path.abspath(os.path.join(app.root_path, directory))
+      fixtures_dirs.append(directory)
+    app.config['FIXTURES_DIRS'] = fixtures_dirs
+    self.app = app
+    self.db = db
+
+  def setup(self, fixtures):
+    print("setting up fixtures...")
+    # Setup the database
+    self.db.create_all()
+    # TODO why do we call this?
+    self.db.session.rollback()
+
+    # Load all of the fixtures
+    fixtures_dirs = self.app.config['FIXTURES_DIRS']
+    for filename in fixtures:
+      for directory in fixtures_dirs:
+        filepath = os.path.join(directory, filename)
+        if os.path.exists(filepath):
+          # TODO load the data into the database
+          load_fixtures(self.db, load_file(filepath))
+          break
+      else:
+        # TODO should we raise an error here instead?
+        print("Error loading '%s'. File could not be found." % filename, file=sys.stderr)
+
+
+  def teardown(self):
+    print("tearing down fixtures...")
+    self.db.session.expunge_all()
+    self.db.drop_all()
+
+  def load_fixtures(self, fixtures):
+    """Loads the given fixtures into the database.
+    """
+    conn = self.db.engine.connect()
+    metadata = self.db.metadata
+
+    for fixture in fixtures:
+      if 'model' in fixture:
+        module_name, class_name = fixture['model'].rsplit('.', 1)
+        module = importlib.import_module(module_name)
+        model = getattr(module, class_name)
+        for fields in fixture['records']:
+          obj = model(**fields)
+          self.db.session.add(obj)
+        self.db.session.commit()
+      elif 'table' in fixture:
+        table = Table(fixture['table'], metadata)
+        conn.execute(table.insert(), fixture['records'])
+      else:
+        raise ValueError("Fixture missing a 'model' or 'table' field: %s" % json.dumps(fixture))
+
+
+  def __call__(self, *fixtures):
+    def decorator(fn):
+      def wrapper(*args, **kwargs):
+        self.setup(fixtures)
+        try:
+          fn(*args, **kwargs)
+        finally:
+          self.teardown()
+      wrapper.__name__ = fn.__name__
+      return wrapper
+    return decorator
+
+
+
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
 
