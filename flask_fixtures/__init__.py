@@ -115,6 +115,7 @@ CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'tear
 TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
+
 class MetaFixturesMixin(type):
   def __new__(meta, name, bases, attrs):
     fixtures = attrs.pop('fixtures', None)
@@ -128,16 +129,16 @@ class MetaFixturesMixin(type):
       raise RuntimeError("Flask-Fixtures does not currently support the use of both class and test fixtures.")
 
     if fixtures is not None:
-      setup_name, child_setup = meta.get_child_fn(attrs, TEST_SETUP_NAMES, bases)
-      teardown_name, child_teardown = meta.get_child_fn(attrs, TEST_TEARDOWN_NAMES, bases)
-      attrs[setup_name] = meta.setup_handler(setup, child_setup)
-      attrs[teardown_name] = meta.teardown_handler(teardown, child_teardown)
+      child_setup_fn = meta.get_child_fn(attrs, TEST_SETUP_NAMES, bases)
+      child_teardown_fn = meta.get_child_fn(attrs, TEST_TEARDOWN_NAMES, bases)
+      attrs[child_setup_fn.__name__] = meta.setup_handler(setup, child_setup_fn)
+      attrs[child_teardown_fn.__name__] = meta.teardown_handler(teardown, child_teardown_fn)
       attrs['_fixtures'] = fixtures
     elif class_fixtures is not None:
-      setup_name, child_setup = meta.get_child_fn(attrs, CLASS_SETUP_NAMES, bases)
-      teardown_name, child_teardown = meta.get_child_fn(attrs, CLASS_TEARDOWN_NAMES, bases)
-      attrs[setup_name] = classmethod(meta.setup_handler(setup, child_setup))
-      attrs[teardown_name] = classmethod(meta.teardown_handler(teardown, child_teardown))
+      child_setup_fn = meta.get_child_fn(attrs, CLASS_SETUP_NAMES, bases)
+      child_teardown_fn = meta.get_child_fn(attrs, CLASS_TEARDOWN_NAMES, bases)
+      attrs[child_setup_fn.__name__] = classmethod(meta.setup_handler(setup, child_setup_fn))
+      attrs[child_teardown_fn.__name__] = classmethod(meta.teardown_handler(teardown, child_teardown_fn))
       attrs['_fixtures'] = class_fixtures
 
     return super(MetaFixturesMixin, meta).__new__(meta, name, bases, attrs)
@@ -166,12 +167,14 @@ class MetaFixturesMixin(type):
 
   @staticmethod
   def get_child_fn(attrs, names, bases):
-    """Returns a tuple with a function name and function from the child class.
+    """Returns a function from the child class that matches one of the names.
 
-    Searches the child class's set of methods (i.e., the attrs dict) for all the
-    functions matching the given list of names. If more than one is found, an
-    exception is raised, if one is found, it is returned, and if none are found,
-    a function that calls the default method on each parent class is returned.
+    Searches the child class's set of methods (i.e., the attrs dict) for all
+    the functions matching the given list of names. If more than one is found,
+    an exception is raised, if one is found, it is returned, and if none are
+    found, a function that calls the default method on each parent class is
+    returned.
+
     """
     def call_method(obj, method):
       """Calls a method as either a class method or an instance method.
@@ -196,7 +199,9 @@ class MetaFixturesMixin(type):
       for cls in bases:
         if hasattr(cls, default_name):
           call_method(obj, getattr(cls, default_name))
+    default_fn.__name__ = default_name
 
+    # Get all of the functions in the child class that match the list of names
     fns = [(name, attrs[name]) for name in names if name in attrs]
 
     # Raise an error if more than one setup/teardown method is found
@@ -207,10 +212,11 @@ class MetaFixturesMixin(type):
       name, fn = fns[0]
       def child_fn(obj):
         call_method(obj, fn)
-      return name, child_fn
+      child_fn.__name__ = name
+      return child_fn
     # Otherwise, return the default function
     else:
-      return default_name, default_fn
+      return default_fn
 
 
 class FixturesMixin(object):
