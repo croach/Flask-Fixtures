@@ -36,8 +36,12 @@ except ImportError:
   YAML_INSTALLED = False
 
 
-CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
-CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
+DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
+DEFAULT_CLASS_TEARDOWN_NAME = 'tearDownClass'
+CLASS_SETUP_NAMES = ('setup_class', 'setup_all', 'setupClass', 'setupAll',
+                     'setUpClass', 'setUpAll')
+CLASS_TEARDOWN_NAMES = ('teardown_class', 'teardown_all', 'teardownClass',
+                     'teardownAll', 'tearDownClass', 'tearDownAll')
 TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
@@ -149,7 +153,7 @@ class Fixtures(object):
     all tests in the class have finished running.
 
     """
-    def wrap_method(cls, fixtures_fn, names):
+    def wrap_method(cls, fixtures_fn, names, default_name):
       methods = filter(None, [getattr(cls, name, None) for name in names])
       if len(methods) > 1:
         raise RuntimeError("Cannot have more than one setup/teardown method, found %s" %
@@ -164,10 +168,10 @@ class Fixtures(object):
       else:
         def wrapper(cls, *args, **kwargs):
           fixtures_fn()
-          setattr(cls, 'setup_class', classmethod(wrapper))
+        setattr(cls, default_name, classmethod(wrapper))
 
-    wrap_method(cls, lambda: self.setup(fixtures), CLASS_SETUP_NAMES)
-    wrap_method(cls, lambda: self.teardown(), CLASS_TEARDOWN_NAMES)
+    wrap_method(cls, lambda: self.setup(fixtures), CLASS_SETUP_NAMES, DEFAULT_CLASS_SETUP_NAME)
+    wrap_method(cls, lambda: self.teardown(), CLASS_TEARDOWN_NAMES, DEFAULT_CLASS_TEARDOWN_NAME)
 
     return cls
 
