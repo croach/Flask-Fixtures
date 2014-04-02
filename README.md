@@ -37,11 +37,12 @@ default fixtures directory. As an example, we'll assume we have the following
 classes in our code base.
 
 ```python
+# myapp/__init__.py
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/test.db'
 db = SQLAlchemy(app)
 
 
@@ -57,10 +58,22 @@ class Book(db.Model):
     author = db.relationship('Author', backref='books')
 ```
 
+And we'll also add the following configuration file as well.
+
+```python
+# myapp/config/__init__.py
+
+class TestConfig(object):
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    testing = True
+    debug = True
+    FIXTURES_DIRS = ['test/fixtures']
+```
+
 Given the classes above, if we wanted to mock up some data for our database, we
-could do so in single file, or we could even split our fixtures into multiple
-files each corresponding to each of our classes. For this simple example, we'll
-go with one file that we'll call authors.json.
+could do so in a single file, or we could even split our fixtures into multiple
+files. For this simple example, we'll go with one file that we'll call
+`authors.json`.
 
 A fixtures file contains a list of objects. Each object contains a key called
 `records` that  holds another list of objects each representing either a row in
@@ -116,35 +129,52 @@ on a lower level when creating table-based fixtures.
 
 ## Usage
 
-To use Flask-Fixtures in your unit tests, you'll need to make sure your test
-class inherits from `FixturesMixin` and that you've specified a list of
-fixtures files to load.The sample code below shows how to do each these steps.
+To use fixtures in your unit tests, you simply need to create an instance of the
+`Fixtures` class and use that to mark the tests where you want to use fixture
+data. An instance of `Fixtures` is a decorator that can be used to decorate
+methods or classes. When you decorate a method, fixtures will be installed
+before the test runs, and torn down after the test finishes. The functions that
+setup and teardown fixtures do not interfere with the normal setup and teardown
+functions that packages such as unittest, unittest2, and nose provide. In both
+cases (setup and teardown) the fixtures are handled first before any user
+defined setup/teardown functions are ran. This allows you to  assume that your
+fixture data is already in the database when writing your setup functions.
 
-First, make sure the app that you're testing is initialized with the proper
-configuration. Then import and initialize the `FixturesMixin` class, create a
-new test class, and inherit from `FixturesMixin`. Now you just need to tell
-Flask-Fixtures which fixtures files to use for your tests. You can do so by
-setting either the `class_fixtures` or `fixtures` class variable. The former
-will setup fixtures only when the class is created, whereas the latter is
-setup and torn down between each test. The `fixtures` and `class_fixtures`
-variables should be set to a list of strings, each of which is a name of a
-fixtures file to load. Flask-Fixtures will then search each directory in the
-`FIXTURES_DIRS` config variable, in order, for a file matching each name in
-the list and load each into the test database.
+When decorating a class, the fixtures are setup only when the class is created
+and torn down after all tests in the class have finished executing. To do this,
+the `Fixtures` decorator piggybacks on the `setUpClass` and `tearDownClass`
+functions that the unittest library provides. Even though, existing `setUpClass`
+and `tearDownClass` methods are replaced when a test class is decorated, this
+replacement does not interfere with any of the normal functionality of those
+methods. You can still perform any setup and teardown tasks you need to in these
+methods, and you can still use `super` to call the setup and teardown methods of
+other classes in the [MRO][https://www.python.org/download/releases/2.3/mro]
+chain. The only difference is that your fixturs will be inserted into the
+database before any other setup happens and removed before any other teardown
+tasks occur.
+
+The following code shows an example of how to setup and use the `Fixtures` class
+to add fixtures support to your test code.
 
 ```python
 import unittest
 
-from flask.ext.fixtures import FixturesMixin
+from myapp import app, db
 
-app.config.from_object('hirein.config.TestConfig')
-FixturesMixin.init_app(app, db)
+from flask.ext.fixtures import Fixtures
 
+app.config.from_object('myapp.config.TestConfig')
+fixtures = Fixtures(app, db)
 
+# In this example, we'll decorate the entire class. This way the fixtures we
+# have in the `foo_tests.yml` file are loaded into the test database at class
+# creation time (i.e., before any of our tests are ran) and removed after all
+# tests have finished execution.
+@fixtures('foo_tests.yml')
 class TestFoo(unittest.TestCase, FixturesMixin):
     fixtures = ['foo_test_fixtures.json']
 
     # Your tests go here
 ```
 
-And, that's all there is to it, now you need to write some tests.
+And, that's all there is to it, now you just need to go write some tests.
