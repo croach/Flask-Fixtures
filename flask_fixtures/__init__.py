@@ -18,6 +18,7 @@ from __future__ import print_function
 
 import abc
 import functools
+import glob
 import importlib
 import inspect
 import os
@@ -31,22 +32,6 @@ try:
   import simplejson as json
 except ImportError:
   import json
-
-# try:
-#   import yaml
-# except ImportError:
-#   def load(self, filename):
-#     raise Exception("Could not load fixture '%s'. Make sure you have PyYAML installed." % filename)
-#   yaml = type('FakeYaml', (object,), {
-#     'load': load
-#   })()
-
-# LOADERS = {
-#   '.json' = json,
-#   '.js' = json,
-#   '.yaml' = yaml,
-#   '.yml' = yaml,
-# }
 
 
 DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
@@ -110,31 +95,6 @@ class Fixtures(object):
     self.db.session.expunge_all()
     self.db.drop_all()
 
-  # def load_file(self, filename):
-  #   """Returns list of fixtures from the given file.
-  #   """
-  #   name, extension = os.path.splitext(filename)
-  #   if extension.lower() in YAML_FILE_EXTENSIONS:
-  #     if not YAML_INSTALLED:
-  #       raise Exception("Could not load fixture '%s'; PyYAML must first be installed")
-  #     loader = yaml.load
-  #   elif extension.lower() in :
-  #     loader = json.load
-  #   else:
-  #     # Try both supported formats
-  #     def loader(f):
-  #       try:
-  #         return yaml.load(f)
-  #       except Exception:
-  #         pass
-  #       try:
-  #         return json.load(f)
-  #       except Exception:
-  #         pass
-  #       raise Exception("Could not load fixture '%s'; unsupported format")
-  #   with open(filename, 'r') as fin:
-  #     return loader(fin)
-
   def load_fixtures(self, fixtures):
     """Loads the given fixtures into the database.
     """
@@ -156,9 +116,31 @@ class Fixtures(object):
       else:
         raise ValueError("Fixture missing a 'model' or 'table' field: %s" % json.dumps(fixture))
 
+  def find_fixtures(self, obj, fixtures):
+    """Returns the filepaths of the fixtures for the given object.
+
+    This function attempts to find fixtures files in the same directory as the
+    given object's module.
+    """
+    # Search in the same directory as the test script for a file with the same
+    # name, and a supported format's file extension.
+    test_file = sys.modules[obj.__module__].__file__
+    filename, ext = os.path.splitext(test_file)
+    candidate_files = [f for f in glob.glob("%s.*" % filename) if not f.endswith(ext)]
+    fixtures = [f for f in candidate_files if os.path.splitext(f)[1] in loaders.extensions()]
+
+    # if fixtures are still empty, raise an exception
+    if len(fixtures) == 0:
+      raise Exception("Could not find fixtures for '%s'" % test_file)
+
+    return fixtures
+
   def wrap_method(self, method, fixtures):
     """Wraps a method in a set of fixtures setup/teardown functions.
     """
+    if len(fixtures) == 0:
+      fixtures = self.find_fixtures(method, fixtures)
+
     def wrapper(*args, **kwargs):
       self.setup(fixtures)
       try:
@@ -193,16 +175,16 @@ class Fixtures(object):
           fixtures_fn()
         setattr(cls, default_name, classmethod(wrapper))
 
+    # if fixtures aren't empty, just return the ones that were passed in
+    if len(fixtures) == 0:
+      fixtures = self.find_fixtures(cls, fixtures)
+
     wrap_method(cls, lambda: self.setup(fixtures), CLASS_SETUP_NAMES, DEFAULT_CLASS_SETUP_NAME)
     wrap_method(cls, lambda: self.teardown(), CLASS_TEARDOWN_NAMES, DEFAULT_CLASS_TEARDOWN_NAME)
 
     return cls
 
   def __call__(self, *fixtures):
-    # # If no fixtures were passed in, try to find one
-    # if len(fixtures) == 0:
-    #   test_directory = os.path.dirname(os.path.realpath(__file__))
-    #   for ext in SUPPORTED_FILE_FORMATS:
 
     def decorator(obj):
       if inspect.isfunction(obj):

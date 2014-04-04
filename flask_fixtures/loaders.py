@@ -65,5 +65,5 @@ def load(filename):
 
 
 def extensions():
-  return [ext for c in cls.__subclasses__() for ext in c.extensions]
+  return [ext for c in FixtureLoader.__subclasses__() for ext in c.extensions]
 
