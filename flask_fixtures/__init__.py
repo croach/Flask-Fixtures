@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 
 from __future__ import print_function
 
+import abc
 import functools
 import importlib
 import inspect
@@ -24,16 +25,28 @@ import sys
 
 from sqlalchemy import Table
 
+from . import loaders
+
 try:
   import simplejson as json
 except ImportError:
   import json
 
-try:
-  import yaml
-  YAML_INSTALLED = True
-except ImportError:
-  YAML_INSTALLED = False
+# try:
+#   import yaml
+# except ImportError:
+#   def load(self, filename):
+#     raise Exception("Could not load fixture '%s'. Make sure you have PyYAML installed." % filename)
+#   yaml = type('FakeYaml', (object,), {
+#     'load': load
+#   })()
+
+# LOADERS = {
+#   '.json' = json,
+#   '.js' = json,
+#   '.yaml' = yaml,
+#   '.yml' = yaml,
+# }
 
 
 DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
@@ -44,6 +57,7 @@ CLASS_TEARDOWN_NAMES = ('teardown_class', 'teardown_all', 'teardownClass',
                      'teardownAll', 'tearDownClass', 'tearDownAll')
 TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
+
 
 
 class Fixtures(object):
@@ -71,46 +85,55 @@ class Fixtures(object):
     self.db.session.rollback()
 
     # Load all of the fixtures
-    fixtures_dirs = self.app.config['FIXTURES_DIRS']
+    fixtures_dirs = self.app.config.get('FIXTURES_DIRS', [])
     for filename in fixtures:
-      for directory in fixtures_dirs:
-        filepath = os.path.join(directory, filename)
-        if os.path.exists(filepath):
-          # TODO load the data into the database
-          self.load_fixtures(self.load_file(filepath))
-          break
+      # If the filename is an absolute filepath, just go ahead and load it,
+      # otherwise, look through each of the directories in the FIXTURES_DIRS
+      # list until you find a file matching the current filename. Raise an
+      # exception if the file can't be found.
+      if os.path.isabs(filename):
+        filepath = filename
       else:
-        raise IOError("Error loading fixture, '%s' could not be found" % filename)
+        for directory in fixtures_dirs:
+          filepath = os.path.join(directory, filename)
+          if os.path.exists(filepath):
+            break
+        else:
+          raise IOError("Error loading fixture, '%s' could not be found" % filename)
+
+      # Load the current fixture into the database
+      # self.load_fixtures(self.load_file(filepath))
+      self.load_fixtures(loaders.load(filepath))
 
   def teardown(self):
     print("tearing down fixtures...")
     self.db.session.expunge_all()
     self.db.drop_all()
 
-  def load_file(self, filename):
-    """Returns list of fixtures from the given file.
-    """
-    name, extension = os.path.splitext(filename)
-    if extension.lower() in ('.yaml', '.yml'):
-      if not YAML_INSTALLED:
-        raise Exception("Could not load fixture '%s'; PyYAML must first be installed")
-      loader = yaml.load
-    elif extension.lower() in ('.json', '.js'):
-      loader = json.load
-    else:
-      # Try both supported formats
-      def loader(f):
-        try:
-          return yaml.load(f)
-        except Exception:
-          pass
-        try:
-          return json.load(f)
-        except Exception:
-          pass
-        raise Exception("Could not load fixture '%s'; unsupported format")
-    with open(filename, 'r') as fin:
-      return loader(fin)
+  # def load_file(self, filename):
+  #   """Returns list of fixtures from the given file.
+  #   """
+  #   name, extension = os.path.splitext(filename)
+  #   if extension.lower() in YAML_FILE_EXTENSIONS:
+  #     if not YAML_INSTALLED:
+  #       raise Exception("Could not load fixture '%s'; PyYAML must first be installed")
+  #     loader = yaml.load
+  #   elif extension.lower() in :
+  #     loader = json.load
+  #   else:
+  #     # Try both supported formats
+  #     def loader(f):
+  #       try:
+  #         return yaml.load(f)
+  #       except Exception:
+  #         pass
+  #       try:
+  #         return json.load(f)
+  #       except Exception:
+  #         pass
+  #       raise Exception("Could not load fixture '%s'; unsupported format")
+  #   with open(filename, 'r') as fin:
+  #     return loader(fin)
 
   def load_fixtures(self, fixtures):
     """Loads the given fixtures into the database.
@@ -176,6 +199,11 @@ class Fixtures(object):
     return cls
 
   def __call__(self, *fixtures):
+    # # If no fixtures were passed in, try to find one
+    # if len(fixtures) == 0:
+    #   test_directory = os.path.dirname(os.path.realpath(__file__))
+    #   for ext in SUPPORTED_FILE_FORMATS:
+
     def decorator(obj):
       if inspect.isfunction(obj):
         return self.wrap_method(obj, fixtures)
