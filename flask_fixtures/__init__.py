@@ -34,6 +34,10 @@ except ImportError:
   import json
 
 
+# Import the current version number
+from version import __version__
+
+
 DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
 DEFAULT_CLASS_TEARDOWN_NAME = 'tearDownClass'
 CLASS_SETUP_NAMES = ('setup_class', 'setup_all', 'setupClass', 'setupAll',
