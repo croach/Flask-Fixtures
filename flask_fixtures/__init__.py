@@ -34,8 +34,7 @@ except ImportError:
   import json
 
 
-# Import the current version number
-from version import __version__
+__version__ = '0.3.0'
 
 
 DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
