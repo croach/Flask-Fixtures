@@ -44,23 +44,26 @@ TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
 
-
 class Fixtures(object):
   def __init__(self, app, db):
     self.init_app(app, db)
 
   def init_app(self, app, db):
-    default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
+    self.app = app
+    self.db = db
+
+  @property
+  def fixtures_dirs(self):
+    default_fixtures_dir = os.path.join(self.app.root_path, 'fixtures')
 
     # All relative paths should be relative to the app's root directory.
     fixtures_dirs = [default_fixtures_dir]
-    for directory in app.config.get('FIXTURES_DIRS', []):
+    for directory in self.app.config.get('FIXTURES_DIRS', []):
       if not os.path.isabs(directory):
-        directory = os.path.abspath(os.path.join(app.root_path, directory))
+        directory = os.path.abspath(os.path.join(self.app.root_path, directory))
       fixtures_dirs.append(directory)
-    app.config['FIXTURES_DIRS'] = fixtures_dirs
-    self.app = app
-    self.db = db
+
+    return fixtures_dirs
 
   def setup(self, fixtures):
     print("setting up fixtures...")
@@ -70,7 +73,6 @@ class Fixtures(object):
     self.db.session.rollback()
 
     # Load all of the fixtures
-    fixtures_dirs = self.app.config.get('FIXTURES_DIRS', [])
     for filename in fixtures:
       # If the filename is an absolute filepath, just go ahead and load it,
       # otherwise, look through each of the directories in the FIXTURES_DIRS
@@ -79,7 +81,7 @@ class Fixtures(object):
       if os.path.isabs(filename):
         filepath = filename
       else:
-        for directory in fixtures_dirs:
+        for directory in self.fixtures_dirs:
           filepath = os.path.join(directory, filename)
           if os.path.exists(filepath):
             break
@@ -87,7 +89,6 @@ class Fixtures(object):
           raise IOError("Error loading fixture, '%s' could not be found" % filename)
 
       # Load the current fixture into the database
-      # self.load_fixtures(self.load_file(filepath))
       self.load_fixtures(loaders.load(filepath))
 
   def teardown(self):
