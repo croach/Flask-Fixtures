@@ -186,7 +186,19 @@ class Fixtures(object):
     return cls
 
   def __call__(self, *fixtures):
+    # The object being decorated/wrapped
+    wrapped_obj = None
 
+    # If the decorator was called without parentheses, the fixtures parameter
+    # will be a list containing the object being decorated rather than a list
+    # of fixtures to install. In that case, we set the fixtures variable to an
+    # empty list and the wrapped_obj variable to the object being decorated so
+    # we can call the decorator on it later.
+    if len(fixtures) == 1 and not isinstance(fixtures[0], basestring):
+      wrapped_obj = fixtures[0]
+      fixtures = ()
+
+    # Create the decorator function
     def decorator(obj):
       if inspect.isfunction(obj):
         return self.wrap_method(obj, fixtures)
@@ -194,4 +206,12 @@ class Fixtures(object):
         return self.wrap_class(obj, fixtures)
       else:
         raise TypeError("received an object of type '%s' expected 'function' or 'classobj'" % type(obj))
-    return decorator
+
+    # If we were passed the object to decorate, go ahead and call the
+    # decorator on it and pass back the result, otherwise, return the
+    # decorator
+    if wrapped_obj is not None:
+      return decorator(wrapped_obj)
+    else:
+      return decorator
+
