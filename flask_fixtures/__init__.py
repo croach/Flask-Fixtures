@@ -34,7 +34,7 @@ except ImportError:
   import json
 
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 
 DEFAULT_CLASS_SETUP_NAME = 'setUpClass'
@@ -217,4 +217,3 @@ class Fixtures(object):
       return decorator(wrapped_obj)
     else:
       return decorator
-
