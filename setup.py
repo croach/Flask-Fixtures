@@ -30,13 +30,13 @@ except:
 setup(
     name='Flask-Fixtures',
     version='0.3.1',
-    url='http://github.com/flask_fixtures',
-    license='Apache License 2.0',
+    url='https://github.com/croach/Flask-Fixtures',
+    license='MIT License',
     author='Christopher Roach',
     author_email='vthakr@gmail.com',
     maintainer='Christopher Roach',
     maintainer_email='vthakr@gmail.com',
-    description='A fixtures library for testing Flask apps.',
+    description='A simple library for adding database fixtures for unit tests using nothing but JSON or YAML.',
     long_description=README + '\n\n' + CHANGES,
     # py_modules=['flask_fixtures'],
     # if you would be using a package instead use packages instead
@@ -46,6 +46,7 @@ setup(
     include_package_data=True,
     platforms='any',
     install_requires=[
+        'Flask',
         'Flask-SQLAlchemy'
     ],
     classifiers=[
