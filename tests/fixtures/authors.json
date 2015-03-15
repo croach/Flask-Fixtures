@@ -1,0 +1,25 @@
+[
+    {
+        "table": "author",
+        "records": [{
+            "id": 1,
+            "first_name": "William",
+            "last_name": "Gibson"
+        }]
+    },
+    {
+        "model": "myapp.Book",
+        "records": [{
+            "title": "Neuromancer",
+            "author_id": 1
+        },
+        {
+            "title": "Count Zero",
+            "author_id": 1
+        },
+        {
+            "title": "Mona Lisa Overdrive",
+            "author_id": 1
+        }]
+    }
+]

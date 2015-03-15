@@ -21,7 +21,7 @@ import inspect
 import os
 import sys
 
-from flask import current_app
+#from flask import current_app
 from sqlalchemy import Table
 
 try:
