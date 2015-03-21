@@ -1,3 +1,5 @@
+# myapp/models.py
+
 from flask.ext.sqlalchemy import SQLAlchemy
 
 from myapp import app
