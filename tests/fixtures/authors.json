@@ -8,7 +8,7 @@
         }]
     },
     {
-        "model": "myapp.Book",
+        "model": "myapp.models.Book",
         "records": [{
             "title": "Neuromancer",
             "author_id": 1

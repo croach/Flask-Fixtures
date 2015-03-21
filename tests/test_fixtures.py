@@ -1,6 +1,7 @@
 import unittest
 
-from myapp import app, db, Book, Author
+from myapp import app
+from myapp.models import db, Book, Author
 
 from flask.ext.fixtures import FixturesMixin
 
