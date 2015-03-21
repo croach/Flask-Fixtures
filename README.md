@@ -224,8 +224,7 @@ class TestFoo(unittest.TestCase, FixturesMixin):
 To see the library in action, you can find a simple Flask application and set
 of unit tests matching the ones in the example above in the `tests/myapp`
 directory. To run these examples yourself, just follow the directions below
-for "Contributing to Flask-Fixtures" to see how to setup and run the unit
-tests.
+for "Contributing to Flask-Fixtures".
 
 ## Contributing to Flask-Fixtures
 
@@ -243,7 +242,7 @@ your virtual environment created, just `cd` into the directory where you
 checked out the Flask-Fixtures source code and install it with pip using the
 `-e` (editable mode) option.
 
-```bash
+```
 cd /path/to/flask_fixtures
 pip install -e .
 ```
