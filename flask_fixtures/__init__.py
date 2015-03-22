@@ -10,12 +10,8 @@
     :license: MIT, see LICENSE for more details.
 """
 
-from __future__ import print_function
-
 import importlib
-import inspect
 import os
-import sys
 
 from sqlalchemy import Table
 
