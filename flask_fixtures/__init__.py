@@ -17,19 +17,21 @@ import inspect
 import os
 import sys
 
-#from flask import current_app
 from sqlalchemy import Table
+
+from . import loaders
 
 try:
     import simplejson as json
 except ImportError:
     import json
 
-try:
-    import yaml
-    YAML_INSTALLED = True
-except ImportError:
-    YAML_INSTALLED = False
+__version__ = '1.0'
+
+CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
+CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
+TEST_SETUP_NAMES = ('setUp',)
+TEST_TEARDOWN_NAMES = ('tearDown',)
 
 
 def setup(obj):
@@ -45,42 +47,15 @@ def setup(obj):
             filepath = os.path.join(directory, filename)
             if os.path.exists(filepath):
                 # TODO load the data into the database
-                load_fixtures(obj.db, load_file(filepath))
+                load_fixtures(obj.db, loaders.load(filepath))
                 break
         else:
-            # TODO should we raise an error here instead?
-            print("Error loading '%s'. File could not be found." % filename, file=sys.stderr)
+            raise IOError("Error loading '%s'. File could not be found" % filename)
 
 
 def teardown(obj):
     obj.db.session.expunge_all()
     obj.db.drop_all()
-
-
-def load_file(filename):
-    """Returns list of fixtures from the given file.
-    """
-    name, extension = os.path.splitext(filename)
-    if extension.lower() in ('.yaml', '.yml'):
-        if not YAML_INSTALLED:
-            raise Exception("Could not load fixture '%s'; PyYAML must first be installed")
-        loader = yaml.load
-    elif extension.lower() in ('.json', '.js'):
-        loader = json.load
-    else:
-        # Try both supported formats
-        def loader(f):
-            try:
-                return yaml.load(f)
-            except Exception:
-                pass
-            try:
-                return json.load(f)
-            except Exception:
-                pass
-            raise Exception("Could not load fixture '%s'; unsupported format")
-    with open(filename, 'r') as fin:
-        return loader(fin)
 
 
 def load_fixtures(db, fixtures):
@@ -103,11 +78,6 @@ def load_fixtures(db, fixtures):
             conn.execute(table.insert(), fixture['records'])
         else:
             raise ValueError("Fixture missing a 'model' or 'table' field: %s" % json.dumps(fixture))
-
-CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
-CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
-TEST_SETUP_NAMES = ('setUp',)
-TEST_TEARDOWN_NAMES = ('tearDown',)
 
 
 class MetaFixturesMixin(type):
