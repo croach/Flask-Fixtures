@@ -1,3 +1,13 @@
+"""
+    flask.ext.fixtures.loaders
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Classes for loading serialized fixtures data.
+
+    :copyright: (c) 2015 Christopher Roach <ask.croach@gmail.com>.
+    :license: MIT, see LICENSE for more details.
+"""
+
 import abc
 import os
 import logging
