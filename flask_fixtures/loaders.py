@@ -12,7 +12,7 @@ import abc
 import os
 import logging
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 try:
     import simplejson as json
@@ -23,7 +23,7 @@ try:
     import yaml
 except ImportError:
     def load(self, filename):
-        raise Exception("Could not load fixture '%s'. Make sure you have PyYAML installed." % filename)
+        raise Exception("Could not load fixture '{0}'. Make sure you have PyYAML installed.".format(filename))
     yaml = type('FakeYaml', (object,), {
         'load': load
     })()
@@ -62,7 +62,7 @@ def load(filename):
         # If a loader class has no extenions, log a warning so the developer knows
         # that it will never be used anyhwhere
         if not hasattr(cls, 'extensions'):
-            logger.warn()
+            log.warn("The loader '{0}' is missing extensions and will not be used.".format(cls.__name__))
             continue
 
         # Otherwise, check if the file's extension matches a loader extension
@@ -71,7 +71,7 @@ def load(filename):
                 return cls().load(filename)
 
     # None of the loaders matched, so raise an exception
-    raise Exception("Could not load fixture '%s'. Unsupported file format." % filename)
+    raise Exception("Could not load fixture '{0}'. Unsupported file format.".format(filename))
 
 
 def extensions():

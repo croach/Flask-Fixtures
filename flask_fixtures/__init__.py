@@ -11,6 +11,7 @@
 """
 
 import importlib
+import logging
 import os
 
 from sqlalchemy import Table
@@ -24,6 +25,12 @@ except ImportError:
 
 __version__ = '1.0'
 
+
+# Configure the root logger for the library
+logging.basicConfig(formatter="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
+log = logging.getLogger(__name__)
+
+
 CLASS_SETUP_NAMES = ('setUpClass', 'setup_class', 'setup_all', 'setupClass', 'setupAll', 'setUpAll')
 CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'teardownClass', 'teardownAll', 'tearDownAll')
 TEST_SETUP_NAMES = ('setUp',)
@@ -31,6 +38,7 @@ TEST_TEARDOWN_NAMES = ('tearDown',)
 
 
 def setup(obj):
+    log.info('setting up fixtures...')
     # Setup the database
     obj.db.create_all()
     # TODO why do we call this?
@@ -46,10 +54,11 @@ def setup(obj):
                 load_fixtures(obj.db, loaders.load(filepath))
                 break
         else:
-            raise IOError("Error loading '%s'. File could not be found" % filename)
+            raise IOError("Error loading '{0}'. File could not be found".format(filename))
 
 
 def teardown(obj):
+    log.info('tearing down fixtures...')
     obj.db.session.expunge_all()
     obj.db.drop_all()
 
@@ -73,7 +82,7 @@ def load_fixtures(db, fixtures):
             table = Table(fixture['table'], metadata)
             conn.execute(table.insert(), fixture['records'])
         else:
-            raise ValueError("Fixture missing a 'model' or 'table' field: %s" % json.dumps(fixture))
+            raise ValueError("Fixture missing a 'model' or 'table' field: {0}".format(json.dumps(fixture)))
 
 
 class MetaFixturesMixin(type):
