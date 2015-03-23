@@ -12,7 +12,18 @@ import abc
 import os
 import logging
 
-log = logging.getLogger(__name__)
+from .helpers import print_info
+
+try:
+    from dateutil.parser import parse as dtparse
+except ImportError:
+    print_info("""If you are using JSON for your fixtures, consider installing
+        the dateutil library for more flexible parsing of dates and times.""")
+
+    from datetime import datetime
+    def dtparse(dtstring):
+        """Returns a datetime object for the given string"""
+        return datetime.strptime(dtstring, '%Y-%m-%d')
 
 try:
     import simplejson as json
@@ -29,6 +40,9 @@ except ImportError:
     })()
 
 
+log = logging.getLogger(__name__)
+
+
 class FixtureLoader(object):
     __metaclass__ = abc.ABCMeta
 
@@ -42,8 +56,16 @@ class JSONLoader(FixtureLoader):
     extensions = ('.json', '.js')
 
     def load(self, filename):
+        def _datetime_parser(dct):
+            for key, value in dct.items():
+                try:
+                    dct[key] = dtparse(value)
+                except Exception:
+                    pass
+            return dct
+
         with open(filename) as fin:
-            return json.load(fin)
+            return json.load(fin, object_hook=_datetime_parser)
 
 
 class YAMLLoader(FixtureLoader):
