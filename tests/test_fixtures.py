@@ -21,9 +21,28 @@ class TestFoo(unittest.TestCase, FixturesMixin):
 
     # Your tests go here
 
+    def setUp(self):
+        # Make sure that the user defined setUp method runs after the fixtures
+        # setup function (i.e., the database should be setup already)
+        assert Author.query.count() == 1
+        assert Book.query.count() == 3
+
+        # Add another author on the fly
+        author = Author()
+        author.first_name = 'George'
+        author.last_name = 'Orwell'
+        self.db.session.add(author)
+        self.db.session.commit()
+
+    def tearDown(self):
+        # This should run before the fixtures tear down function, so the
+        # database should still contain all the fixtures data
+        assert Author.query.count() == 2
+        assert Book.query.count() == 3
+
     def test_authors(self):
         authors = Author.query.all()
-        assert len(authors) == Author.query.count() == 1
+        assert len(authors) == Author.query.count() == 2
         assert len(authors[0].books) == 3
 
     def test_books(self):
