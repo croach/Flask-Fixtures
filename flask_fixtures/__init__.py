@@ -41,7 +41,7 @@ def setup(obj):
     log.info('setting up fixtures...')
     # Setup the database
     obj.db.create_all()
-    # TODO why do we call this?
+    # Rollback any lingering transactions
     obj.db.session.rollback()
 
     # Load all of the fixtures
