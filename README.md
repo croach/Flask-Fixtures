@@ -259,5 +259,3 @@ those installed, you can run the tests with the commands in the table below.
 | py.test  | py.test                                             |
 | nose     | nosetests                                           |
 | unittest | python -m unittest discover --start-directory tests |
-
-

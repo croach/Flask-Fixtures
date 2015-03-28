@@ -98,4 +98,3 @@ def load(filename):
 
 def extensions():
     return [ext for c in FixtureLoader.__subclasses__() for ext in c.extensions]
-

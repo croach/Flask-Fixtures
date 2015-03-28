@@ -208,4 +208,3 @@ class FixturesMixin(object):
         app.config['FIXTURES_DIRS'] = fixtures_dirs
         cls.app = app
         cls.db = db
-
