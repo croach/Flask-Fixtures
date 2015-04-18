@@ -16,8 +16,8 @@ FixturesMixin.init_app(app, db)
 # Make sure to inherit from the FixturesMixin class
 class TestFoo(unittest.TestCase, FixturesMixin):
 
-    # Specify the fixtures file you want to load
-    fixtures = ['authors.json']
+    # Specify the fixtures file(s) you want to load
+    fixtures = ['authors.yaml']
 
     # Your tests go here
 

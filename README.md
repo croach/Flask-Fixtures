@@ -148,6 +148,35 @@ that file.
 ]
 ```
 
+Another option, if you have [PyYAML][pyyaml] installed, is to write your fixtures using
+the YAML syntax instead of JSON. Personally, I prefer to use YAML; I find its
+syntax is easier to read, and I find the ability to add comments to my
+fixtures to be invaluable.
+
+If you'd prefer to use YAML, I've added a version of the authors.json file
+written in YAML below. Just copy and paste it into a file called
+`myapp/fixtures/authors.yaml` in place of creating the JSON file above.
+
+```yaml
+- table: author
+  records:
+    - id: 1
+      first_name: William
+      last_name: Gibson
+
+- model: myapp.models.Book
+  records:
+    - title: Neuromancer
+      author_id: 1
+      published_date: 1984-07-01
+    - title: Count Zero
+      author_id: 1
+      published_date: 1986-03-01
+    - title: Neuromancer
+      author_id: 1
+      published_date: 1988-10-01
+```
+
 After reading over the previous section, you might be asking yourself why the
 library supports two methods for adding records to the database. There are a
 few good reasons for supporting both tables and models when creating fixtures.
@@ -205,7 +234,9 @@ FixturesMixin.init_app(app, db)
 # Make sure to inherit from the FixturesMixin class
 class TestFoo(unittest.TestCase, FixturesMixin):
 
-    # Specify the fixtures file you want to load
+    # Specify the fixtures file(s) you want to load.
+    # Change the list below to ['authors.yaml'] if you created your fixtures
+    # file using YAML instead of JSON.
     fixtures = ['authors.json']
 
     # Your tests go here
@@ -259,3 +290,5 @@ those installed, you can run the tests with the commands in the table below.
 | py.test  | py.test                                             |
 | nose     | nosetests                                           |
 | unittest | python -m unittest discover --start-directory tests |
+
+[pyyaml]: http://pyyaml.org/

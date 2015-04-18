@@ -1,0 +1,18 @@
+- table: author
+  records:
+    - id: 1
+      first_name: William
+      last_name: Gibson
+
+- model: myapp.models.Book
+  records:
+    - title: Neuromancer
+      author_id: 1
+      published_date: 1984-07-01
+    - title: Count Zero
+      author_id: 1
+      published_date: 1986-03-01
+    - title: Neuromancer
+      author_id: 1
+      published_date: 1988-10-01
+
