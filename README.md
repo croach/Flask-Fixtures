@@ -263,27 +263,17 @@ for "Contributing to Flask-Fixtures".
 
 ## Contributing to Flask-Fixtures
 
-Currently, Flask-Fixtures supports the py.test, nose, and unittest (included
-in the python standard library) libraries. To contribute bug fixes and
-features to Flask-Fixtures, you'll need to make sure that any code you
-contribute does not break any of the existing unit tests in any of these three
-environments.
+Currently, Flask-Fixtures supports python versions 2.6 and 2.7 and the
+py.test, nose, and unittest (included in the python standard library)
+libraries. To contribute bug fixes and features to Flask-Fixtures, you'll need
+to make sure that any code you contribute does not break any of the existing
+unit tests in any of these environments.
 
-To run the unit tests in each environment, you'll first need to checkout the
-source code and install it in develop mode. I suggest using virtualenv to
-create a virtual development environment, so you're not polluting your normal
-Python environment with a development version of Flask-Fixtures. Once you have
-your virtual environment created, just `cd` into the directory where you
-checked out the Flask-Fixtures source code and install it with pip using the
-`-e` (editable mode) option.
-
-```
-cd /path/to/flask_fixtures
-pip install -e .
-```
-
-Then, you'll need to install the py.test and nose libraries. Once you have
-those installed, you can run the tests with the commands in the table below.
+To run unit tests in all six of the supported environments, I suggest you
+install [tox][tox] and simply run the `tox` command. If, however, you insist
+on running things by hand, you'll need to create a virtualenv for both python
+2.6 and python 2.7. Then, install nose and py.test in each virtualenv.
+Finally, you can run the tests with the commands in the table below.
 
 | Library  | Command                                             |
 |:---------|:----------------------------------------------------|
@@ -292,3 +282,4 @@ those installed, you can run the tests with the commands in the table below.
 | unittest | python -m unittest discover --start-directory tests |
 
 [pyyaml]: http://pyyaml.org/
+[tox]: https://testrun.org/tox/latest/

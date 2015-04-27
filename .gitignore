@@ -4,3 +4,5 @@
 # Emacs temp files
 \#*\#
 *~
+
+.tox

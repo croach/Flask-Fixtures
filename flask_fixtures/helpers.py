@@ -13,7 +13,7 @@ from __future__ import print_function
 import sys
 
 
-def print_msg(msg, header):
+def print_msg(msg, header, file=sys.stdout):
     """Prints a boardered message to the screen"""
     DEFAULT_MSG_BLOCK_WIDTH = 60
 
@@ -41,19 +41,19 @@ def print_msg(msg, header):
         if len(line + ' ' + word) <= msg_block_width - 4:
             line = (line + ' ' + word).strip()
         else:
-            lines.append('#{}#'.format(pad(line, msg_block_width - 4)))
+            lines.append('#{0}#'.format(pad(line, msg_block_width - 4)))
             line = word
-    lines.append('#{}#'.format(pad(line, msg_block_width - 4)))
+    lines.append('#{0}#'.format(pad(line, msg_block_width - 4)))
 
     # Print the full message
-    print(file=sys.stderr)
-    print(top_boarder, file=sys.stderr)
-    print('#{}#'.format(pad('', msg_block_width - 4)), file=sys.stderr)
+    print(file=file)
+    print(top_boarder, file=file)
+    print('#{0}#'.format(pad('', msg_block_width - 4)), file=file)
     for line in lines:
-        print(line, file=sys.stderr)
-    print('#{}#'.format(pad('', msg_block_width - 4)), file=sys.stderr)
-    print(bottom_boarder, file=sys.stderr)
-    print(file=sys.stderr)
+        print(line, file=file)
+    print('#{0}#'.format(pad('', msg_block_width - 4)), file=file)
+    print(bottom_boarder, file=file)
+    print(file=file)
 
 def print_info(msg):
     print_msg(msg, 'INFORMATION')

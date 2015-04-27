@@ -10,7 +10,6 @@
     :license: MIT, see LICENSE for more details.
 """
 
-import importlib
 import logging
 import os
 
@@ -72,7 +71,7 @@ def load_fixtures(db, fixtures):
     for fixture in fixtures:
         if 'model' in fixture:
             module_name, class_name = fixture['model'].rsplit('.', 1)
-            module = importlib.import_module(module_name)
+            module = __import__(module_name, globals(), locals(), [class_name], -1)
             model = getattr(module, class_name)
             for fields in fixture['records']:
                 obj = model(**fields)
