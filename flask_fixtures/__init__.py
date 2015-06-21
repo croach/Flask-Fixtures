@@ -26,7 +26,8 @@ __version__ = '1.0'
 
 
 # Configure the root logger for the library
-logging.basicConfig(formatter="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
+logger_format_string = '[%(levelname)s] %(message)s in File "%(pathname)s", line %(lineno)d, in %(funcName)s'
+logging.basicConfig(format=logger_format_string, level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
