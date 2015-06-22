@@ -46,7 +46,7 @@ def setup(obj):
 
     # Load all of the fixtures
     fixtures_dirs = obj.app.config['FIXTURES_DIRS']
-    for filename in obj._fixtures:
+    for filename in obj.fixtures:
         for directory in fixtures_dirs:
             filepath = os.path.join(directory, filename)
             if os.path.exists(filepath):
@@ -88,28 +88,24 @@ def load_fixtures(db, fixtures):
 class MetaFixturesMixin(type):
     def __new__(meta, name, bases, attrs):
 
-        fixtures = attrs.pop('fixtures', None)
-        class_fixtures = attrs.pop('class_fixtures', None)
+        fixtures = attrs.get('fixtures', [])
+        persist_fixtures = attrs.get('persist_fixtures', False)
 
-        # TODO: In the future we may want to support class and test fixtures simultaneously.
-        # This is tough to do since the test fixtures need to be wiped out of the database
-        # after each test and re-inserted back in before each test without affecting the
-        # the class fixtures or any changes to them that the tests have made.
-        if fixtures is not None and class_fixtures is not None:
-            raise RuntimeError("Flask-Fixtures does not currently support the use of both class and test fixtures.")
-
-        if fixtures is not None:
-            child_setup_fn = meta.get_child_fn(attrs, TEST_SETUP_NAMES, bases)
-            child_teardown_fn = meta.get_child_fn(attrs, TEST_TEARDOWN_NAMES, bases)
-            attrs[child_setup_fn.__name__] = meta.setup_handler(setup, child_setup_fn)
-            attrs[child_teardown_fn.__name__] = meta.teardown_handler(teardown, child_teardown_fn)
-            attrs['_fixtures'] = fixtures
-        elif class_fixtures is not None:
-            child_setup_fn = meta.get_child_fn(attrs, CLASS_SETUP_NAMES, bases)
-            child_teardown_fn = meta.get_child_fn(attrs, CLASS_TEARDOWN_NAMES, bases)
-            attrs[child_setup_fn.__name__] = classmethod(meta.setup_handler(setup, child_setup_fn))
-            attrs[child_teardown_fn.__name__] = classmethod(meta.teardown_handler(teardown, child_teardown_fn))
-            attrs['_fixtures'] = class_fixtures
+        # We only need to do something if there's a set of fixtures,
+        # otherwise, do nothing. The main reason this is here is because this
+        # method is called when the FixturesMixin class is created and we
+        # don't want to do any test setup on that class.
+        if fixtures:
+            if not persist_fixtures:
+                child_setup_fn = meta.get_child_fn(attrs, TEST_SETUP_NAMES, bases)
+                child_teardown_fn = meta.get_child_fn(attrs, TEST_TEARDOWN_NAMES, bases)
+                attrs[child_setup_fn.__name__] = meta.setup_handler(setup, child_setup_fn)
+                attrs[child_teardown_fn.__name__] = meta.teardown_handler(teardown, child_teardown_fn)
+            else:
+                child_setup_fn = meta.get_child_fn(attrs, CLASS_SETUP_NAMES, bases)
+                child_teardown_fn = meta.get_child_fn(attrs, CLASS_TEARDOWN_NAMES, bases)
+                attrs[child_setup_fn.__name__] = classmethod(meta.setup_handler(setup, child_setup_fn))
+                attrs[child_teardown_fn.__name__] = classmethod(meta.teardown_handler(teardown, child_teardown_fn))
 
         return super(MetaFixturesMixin, meta).__new__(meta, name, bases, attrs)
 

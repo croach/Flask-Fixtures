@@ -22,7 +22,8 @@ if sys.hexversion >= 0x02070000:
     class TestClassFixtures(unittest.TestCase, FixturesMixin):
 
         # Specify the fixtures file(s) you want to load
-        class_fixtures = ['authors.json']
+        fixtures = ['authors.json']
+        persist_fixtures = True
 
         @classmethod
         def setUpClass(self):
