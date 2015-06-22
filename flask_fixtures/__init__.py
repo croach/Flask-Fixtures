@@ -16,7 +16,7 @@ import os
 from sqlalchemy import Table
 
 from . import loaders
-from .helpers import can_persist_fixtures
+from .utils import can_persist_fixtures
 
 try:
     import simplejson as json
