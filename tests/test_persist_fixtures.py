@@ -19,7 +19,7 @@ FixturesMixin.init_app(app, db)
 # will fail. So, make sure we only run the test with python 2.7 or greater.
 if sys.hexversion >= 0x02070000:
 
-    class TestClassFixtures(unittest.TestCase, FixturesMixin):
+    class TestPersistFixtures(unittest.TestCase, FixturesMixin):
 
         # Specify the fixtures file(s) you want to load
         fixtures = ['authors.json']
