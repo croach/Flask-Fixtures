@@ -23,7 +23,7 @@ except:
 
 setup(
     name='Flask-Fixtures',
-    version='0.3.3',
+    version='0.3.4',
     url='https://github.com/croach/Flask-Fixtures',
     license='MIT License',
     author='Christopher Roach',
