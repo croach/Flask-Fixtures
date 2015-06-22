@@ -51,3 +51,21 @@ class TestFoo(unittest.TestCase, FixturesMixin):
         gibson = Author.query.filter(Author.last_name=='Gibson').one()
         for book in books:
             assert book.author == gibson
+
+
+class TestWithoutUserDefinedFunctions(unittest.TestCase, FixturesMixin):
+    """Tests everything is working without user defined setup/teardown functions
+    """
+
+    # Specify the fixtures file(s) you want to load
+    fixtures = ['authors.json']
+
+    # Your tests go here
+
+    def test_add_author(self):
+        # Add another author on the fly
+        author = Author()
+        author.first_name = 'George'
+        author.last_name = 'Orwell'
+        self.db.session.add(author)
+        self.db.session.commit()
