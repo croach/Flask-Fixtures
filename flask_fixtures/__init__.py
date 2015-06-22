@@ -10,14 +10,13 @@
     :license: MIT, see LICENSE for more details.
 """
 
-import inspect
 import logging
 import os
-import sys
 
 from sqlalchemy import Table
 
 from . import loaders
+from .helpers import can_persist_fixtures
 
 try:
     import simplejson as json
@@ -94,18 +93,7 @@ class MetaFixturesMixin(type):
 
         # Should we persist fixtures across tests, i.e., should we use the
         # setUpClass and tearDownClass methods instead of setUp and tearDown?
-        persist_fixtures = attrs.get('persist_fixtures', False)
-
-        # setUpClass and tearDownClass were introduced in python 2.7. If we're
-        # running an earlier version of python, we'll have to use the regular
-        # setUp and tearDown methods, unless we're running our tests with nose
-        # or py.test. These libraries support both setUpClass and
-        # tearDownClass, so we can still support these methods even if though
-        # using python 2.6 or earlier
-        if sys.hexversion < 0x02070000:
-            filename = inspect.stack()[-1][1]
-            executable = os.path.split(filename)[1]
-            persist_fixtures = persist_fixtures and executable in ('py.test', 'nosetests')
+        persist_fixtures = attrs.get('persist_fixtures', False) and can_persist_fixtures()
 
         # We only need to do something if there's a set of fixtures,
         # otherwise, do nothing. The main reason this is here is because this

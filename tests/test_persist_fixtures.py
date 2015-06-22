@@ -8,6 +8,7 @@ from myapp import app
 from myapp.models import db, Book, Author
 
 from flask.ext.fixtures import FixturesMixin
+from flask.ext.fixtures.helpers import can_persist_fixtures
 
 # Configure the app with the testing configuration
 app.config.from_object('myapp.config.TestConfig')
@@ -16,32 +17,10 @@ app.config.from_object('myapp.config.TestConfig')
 FixturesMixin.init_app(app, db)
 
 
-def can_run_tests():
-    """Checks if the tests in this file can be ran or not.
-
-    The setUpClass and tearDownClass methods were added to unittest.TestCase
-    in python 2.7. So, we can only run the tests in this file if we are using
-    python 2.7. However, the nose and py.test libraries add support for these
-    methods regardless of what version of python we are running, so if we are
-    running with either of those libraries, go ahead and execute the tests as
-    well.
-
-    """
-    # If we're running python 2.7 or greater, we're fine
-    if sys.hexversion >= 0x02070000:
-        return True
-
-    # Otherwise, nose and py.test support the setUpClass and tearDownClass
-    # methods, so if we're using either of those, go ahead and run the tests
-    filename = inspect.stack()[-1][1]
-    executable = os.path.split(filename)[1]
-    return executable in ('py.test', 'nosetests')
-
-
 # The setUpClass and tearDownClass methods were added to unittest.TestCase in
 # python 2.7, so if we're running a version of python below that this test
 # will fail. So, make sure we only run the test with python 2.7 or greater.
-if can_run_tests():
+if can_persist_fixtures():
 
     class TestPersistFixtures(unittest.TestCase, FixturesMixin):
 
