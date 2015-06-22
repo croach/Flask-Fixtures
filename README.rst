@@ -213,21 +213,19 @@ test class inherits from ``FixturesMixin`` and that you've specified a
 list of fixtures files to load. The sample code below shows how to do
 each these steps.
 
-First, make sure the app that you're testing is initialized with the
-proper configuration. Then import and initialize the ``FixturesMixin``
-class, create a new test class, and inherit from ``FixturesMixin``. Now
-you just need to tell Flask-Fixtures which fixtures files to use for
-your tests. You can do so by setting either the ``fixtures`` or
-``class_fixtures`` class variable. The former will setup and tear down
-fixtures between each test while the latter will setup fixtures only
-when the class is first created and tear them down after all tests have
-finished executing (in other words, changes to the database will persist
-between tests). The ``fixtures`` and ``class_fixtures`` variables should
-be set to a list of strings, each of which is the name of a fixtures
-file to load. Flask-Fixtures will then search the default fixtures
-directory followed by each directory in the ``FIXTURES_DIRS`` config
-variable, in order, for a file matching each name in the list and load
-each into the test database.
+First, make sure the app that you're testing is initialized with the proper
+configuration. Then import and initialize the ``FixturesMixin`` class, create
+a new test class, and inherit from ``FixturesMixin``. Now you just need to
+tell Flask-Fixtures which fixtures files to use for your tests. You can do so
+by setting the ``fixtures`` class variable. Doing so will setup and tear down
+fixtures between each test. To persist fixtures across tests, i.e., to setup
+fixtures only when the class is first created and tear them down after all
+tests have finished executing, you'll need to set the ``persist_fixtures``
+variable to True. The ``fixtures`` variable should be set to a list of
+strings, each of which is the name of a fixtures file to load. Flask-Fixtures
+will then search the default fixtures directory followed by each directory in
+the ``FIXTURES_DIRS`` config variable, in order, for a file matching each name
+in the list and load each into the test database.
 
 .. code:: python
 
