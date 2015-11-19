@@ -4,6 +4,7 @@ Flask-Fixtures
 
 A fixtures library for testing Flask apps.
 """
+from __future__ import absolute_import
 
 import os
 import subprocess
@@ -21,6 +22,16 @@ try:
 except:
     README = __doc__
 
+install_requires = [
+                       'Flask',
+                       'Flask-SQLAlchemy',
+                       'six'
+                   ]
+try:
+    import importlib
+except ImportError:
+    install_requires.append('importlib')
+
 setup(
     name='Flask-Fixtures',
     version='0.3.4',
@@ -35,14 +46,12 @@ setup(
     # py_modules=['flask_fixtures'],
     # if you would be using a package instead use packages instead
     # of py_modules:
+    install_requires=install_requires,
     packages=['flask_fixtures'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
-    install_requires=[
-        'Flask',
-        'Flask-SQLAlchemy'
-    ],
+
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
