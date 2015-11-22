@@ -7,12 +7,14 @@
     :copyright: (c) 2015 Christopher Roach <ask.croach@gmail.com>.
     :license: MIT, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import abc
 import os
 import logging
 
 from .utils import print_info
+import six
 
 try:
     from dateutil.parser import parse as dtparse
@@ -43,9 +45,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-class FixtureLoader(object):
-    __metaclass__ = abc.ABCMeta
-
+class FixtureLoader(six.with_metaclass(abc.ABCMeta, object)):
     @abc.abstractmethod
     def load(self):
         pass
@@ -57,7 +57,7 @@ class JSONLoader(FixtureLoader):
 
     def load(self, filename):
         def _datetime_parser(dct):
-            for key, value in dct.items():
+            for key, value in list(dct.items()):
                 try:
                     dct[key] = dtparse(value)
                 except Exception:

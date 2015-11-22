@@ -9,6 +9,7 @@
     :copyright: (c) 2015 Christopher Roach <ask.croach@gmail.com>.
     :license: MIT, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 import logging
 import os
@@ -17,6 +18,8 @@ from sqlalchemy import Table
 
 from . import loaders
 from .utils import can_persist_fixtures
+import six
+import importlib
 
 try:
     import simplejson as json
@@ -73,7 +76,7 @@ def load_fixtures(db, fixtures):
     for fixture in fixtures:
         if 'model' in fixture:
             module_name, class_name = fixture['model'].rsplit('.', 1)
-            module = __import__(module_name, globals(), locals(), [class_name], -1)
+            module = importlib.import_module(module_name)
             model = getattr(module, class_name)
             for fields in fixture['records']:
                 obj = model(**fields)
@@ -189,9 +192,7 @@ class MetaFixturesMixin(type):
             return default_fn
 
 
-class FixturesMixin(object):
-
-    __metaclass__ = MetaFixturesMixin
+class FixturesMixin(six.with_metaclass(MetaFixturesMixin, object)):
 
     fixtures = None
 

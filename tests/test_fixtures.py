@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # myapp/fixtures/test_fixtures.py
 
 import unittest

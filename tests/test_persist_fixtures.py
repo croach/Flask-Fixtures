@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import datetime
 import inspect
 import os
@@ -43,7 +45,7 @@ if can_persist_fixtures():
             assert Book.query.count() == 5
 
         def test_one(self):
-            print "Inside test_one"
+            print("Inside test_one")
             # Add another author on the fly
             author = Author()
             author.first_name = 'George'
@@ -59,7 +61,7 @@ if can_persist_fixtures():
             self.db.session.commit()
 
         def test_two(self):
-            print "Inside test_two"
+            print("Inside test_two")
             # Add another author on the fly
             author = Author()
             author.first_name = 'Aldous'

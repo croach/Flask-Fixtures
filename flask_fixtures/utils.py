@@ -9,6 +9,8 @@
 """
 
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import inspect
 import os
@@ -21,7 +23,7 @@ def print_msg(msg, header, file=sys.stdout):
 
     # Calculate the length of the boarder on each side of the header and the
     # total length of the bottom boarder
-    side_boarder_length = (DEFAULT_MSG_BLOCK_WIDTH - (len(header) + 2)) / 2
+    side_boarder_length = (DEFAULT_MSG_BLOCK_WIDTH - (len(header) + 2)) // 2
     msg_block_width = side_boarder_length * 2 + (len(header) + 2)
 
     # Create the top and bottom boarders
@@ -32,7 +34,7 @@ def print_msg(msg, header, file=sys.stdout):
     def pad(line, length):
         """Returns a string padded and centered by the given length"""
         padding_length = length - len(line)
-        left_padding = ' ' * (padding_length/2)
+        left_padding = ' ' * (padding_length//2)
         right_padding = ' ' * (padding_length - len(left_padding))
         return '{0} {1} {2}'.format(left_padding, line, right_padding)
 
