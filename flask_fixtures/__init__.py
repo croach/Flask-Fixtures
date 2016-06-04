@@ -21,6 +21,12 @@ from .utils import can_persist_fixtures
 import six
 import importlib
 
+from flask import _request_ctx_stack
+try:
+    from flask import _app_ctx_stack
+except ImportError:
+    _app_ctx_stack = None
+
 try:
     import simplejson as json
 except ImportError:
@@ -40,9 +46,33 @@ CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'tear
 TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
+def push_ctx(app):
+    """Creates new test context(s) for the given app
+    """
+    ctx = app.test_request_context()
+    ctx.fixtures_request_context = True
+    ctx.push()
+    if _app_ctx_stack is not None:
+        _app_ctx_stack.top.fixtures_app_context = True
+
+
+def pop_ctx():
+    """Removes the test context(s) from the current stack(s)
+    """
+    if getattr(_request_ctx_stack.top, 'fixtures_request_context', False):
+        _request_ctx_stack.pop()
+    if _app_ctx_stack is not None and getattr(_app_ctx_stack.top, 'fixtures_app_context', False):
+        _app_ctx_stack.pop()
+
 
 def setup(obj):
     log.info('setting up fixtures...')
+
+    # If there isn't an existing app (or request) context, create one and push
+    # it onto the stack and mark it with a flag identifying it as our own, so
+    # we know we can remove it later.
+    push_ctx(obj.app)
+
     # Setup the database
     obj.db.create_all()
     # Rollback any lingering transactions
@@ -66,6 +96,8 @@ def teardown(obj):
     obj.db.session.expunge_all()
     obj.db.drop_all()
 
+    # If our app is on the top of the stack
+    pop_ctx()
 
 def load_fixtures(db, fixtures):
     """Loads the given fixtures into the database.

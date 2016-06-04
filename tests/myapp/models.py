@@ -5,7 +5,11 @@ from flask.ext.sqlalchemy import SQLAlchemy
 
 from myapp import app
 
-db = SQLAlchemy(app)
+# Creating and initializing the database object on separate lines to make sure
+# that Flask-Fixtures works when there's currently no app/request context
+# (Issue #22).
+db = SQLAlchemy()
+db.init_app(app)
 
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
