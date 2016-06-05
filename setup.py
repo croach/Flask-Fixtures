@@ -34,7 +34,7 @@ except ImportError:
 
 setup(
     name='Flask-Fixtures',
-    version='0.3.4',
+    version='0.3.5',
     url='https://github.com/croach/Flask-Fixtures',
     license='MIT License',
     author='Christopher Roach',
