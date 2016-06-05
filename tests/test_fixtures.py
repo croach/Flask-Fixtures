@@ -1,5 +1,15 @@
+"""
+    test_fixtures
+    ~~~~~~~~~~~~~
+
+    A set of tests that check the default functionality of Flask-Fixtures.
+
+    :copyright: (c) 2015 Christopher Roach <ask.croach@gmail.com>.
+    :license: MIT, see LICENSE for more details.
+"""
+
+
 from __future__ import absolute_import
-# myapp/fixtures/test_fixtures.py
 
 import unittest
 
@@ -11,16 +21,40 @@ from flask.ext.fixtures import FixturesMixin
 # Configure the app with the testing configuration
 app.config.from_object('myapp.config.TestConfig')
 
-# Initialize the Flask-Fixtures mixin class
-FixturesMixin.init_app(app, db)
 
-# Make sure to inherit from the FixturesMixin class
-class TestFoo(unittest.TestCase, FixturesMixin):
+class TestMyApp(unittest.TestCase, FixturesMixin):
+    """A basic set of tests to make sure that fixtures works.
+    """
 
     # Specify the fixtures file(s) you want to load
     fixtures = ['authors.json']
 
+    # Specify the Flask app and database we want to use for this set of tests
+    app = app
+    db = db
+
     # Your tests go here
+
+    def test_add_author(self):
+        # Add another author on the fly
+        author = Author()
+        author.first_name = 'George'
+        author.last_name = 'Orwell'
+        self.db.session.add(author)
+        self.db.session.commit()
+
+
+# Make sure to inherit from the FixturesMixin class
+class TestMyAppWithUserDefinedFunctions(unittest.TestCase, FixturesMixin):
+    """Tests that functions like setUp and tearDown work
+    """
+
+    # Specify the fixtures file(s) you want to load
+    fixtures = ['authors.json']
+
+    # Specify the Flask app and database we want to use for this set of tests
+    app = app
+    db = db
 
     def setUp(self):
         # Make sure that the user defined setUp method runs after the fixtures
@@ -54,19 +88,51 @@ class TestFoo(unittest.TestCase, FixturesMixin):
             assert book.author == gibson
 
 
-class TestWithoutUserDefinedFunctions(unittest.TestCase, FixturesMixin):
-    """Tests everything is working without user defined setup/teardown functions
+class TestMyAppWithRequestContext(TestMyAppWithUserDefinedFunctions):
+    """Tests that manually pushing a request context works.
+
+    Just as with the app context test (see above), fixtures should work when
+    the user manually pushes a request context onto the stack, e.g., when the
+    developer uses the `test_request_context()` context manager.
+
     """
 
-    # Specify the fixtures file(s) you want to load
-    fixtures = ['authors.json']
+    # Make sure the app object is None, so this test will fail if we don't
+    # have an app context on the stack
+    app = None
 
-    # Your tests go here
+    def setUp(self):
+        self.ctx = app.test_request_context()
+        self.ctx.push()
+        super(TestMyAppWithRequestContext, self).setUp()
 
-    def test_add_author(self):
-        # Add another author on the fly
-        author = Author()
-        author.first_name = 'George'
-        author.last_name = 'Orwell'
-        self.db.session.add(author)
-        self.db.session.commit()
+    def tearDown(self):
+        super(TestMyAppWithRequestContext, self).tearDown()
+        self.ctx.pop()
+
+
+# Only run this test if we are using a version of Flask that supports app
+# contexts (i.e., Flask >= 0.9)
+if hasattr(app, 'app_context'):
+    class TestMyAppWithAppContext(TestMyAppWithUserDefinedFunctions):
+        """Tests that manually pushing a app context works.
+
+        The normal way to specify a Flask application to test is to set it equal
+        to the `app` class variable. However, this could also be done by creating
+        an app context and pushing onto the stack as well. This test makes sure
+        that everything works, even when this method is used.
+
+        """
+
+        # Make sure the app object is None, so this test will fail if we don't
+        # have an app context on the stack
+        app = None
+
+        def setUp(self):
+            self.ctx = app.app_context()
+            self.ctx.push()
+            super(TestMyAppWithAppContext, self).setUp()
+
+        def tearDown(self):
+            super(TestMyAppWithAppContext, self).tearDown()
+            self.ctx.pop()

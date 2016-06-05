@@ -1,3 +1,23 @@
+"""
+    test_persist_fixtures
+    ~~~~~~~~~~~~~~~~~~~~~
+
+    A set of tests for checking the `persist_fixtures` feature of Flask-
+    Fixtures. The default behavior for Fixtures is to completely destroy and
+    rebuild the database from scratch for each individual test. This is
+    typically preferred, since it limits the number of false negatives by
+    making sure that each test runs independently, and is therefore not
+    affected by previous tests. However, if there is a need to run a set of
+    tests without a complete refresh of the test fixtures (e.g., for
+    performance reasons), the `persist_fixtures` flag can be set to `True` to
+    do so. This set of tests makes sure that the `persist_fixtures` flag works
+    as expected.
+
+    :copyright: (c) 2015 Christopher Roach <ask.croach@gmail.com>.
+    :license: MIT, see LICENSE for more details.
+"""
+
+
 from __future__ import absolute_import
 from __future__ import print_function
 import datetime
@@ -15,9 +35,6 @@ from flask.ext.fixtures.utils import can_persist_fixtures
 # Configure the app with the testing configuration
 app.config.from_object('myapp.config.TestConfig')
 
-# Initialize the Flask-Fixtures mixin class
-FixturesMixin.init_app(app, db)
-
 
 # The setUpClass and tearDownClass methods were added to unittest.TestCase in
 # python 2.7, so if we're running a version of python below that this test
@@ -29,6 +46,10 @@ if can_persist_fixtures():
         # Specify the fixtures file(s) you want to load
         fixtures = ['authors.json']
         persist_fixtures = True
+
+        # Specify the Flask app and database we want to use for this set of tests
+        app = app
+        db = db
 
         @classmethod
         def setUpClass(self):

@@ -21,6 +21,7 @@ from .utils import can_persist_fixtures
 import six
 import importlib
 
+from flask import current_app
 from flask import _request_ctx_stack
 try:
     from flask import _app_ctx_stack
@@ -32,7 +33,7 @@ try:
 except ImportError:
     import json
 
-__version__ = '1.0'
+__version__ = '0.3.7'
 
 
 # Configure the root logger for the library
@@ -46,14 +47,28 @@ CLASS_TEARDOWN_NAMES = ('tearDownClass', 'teardown_class', 'teardown_all', 'tear
 TEST_SETUP_NAMES = ('setUp',)
 TEST_TEARDOWN_NAMES = ('tearDown',)
 
-def push_ctx(app):
+def push_ctx(app=None):
     """Creates new test context(s) for the given app
+
+    If the app is not None, it overrides any existing app and/or request
+    context. In other words, we will use the app that was passed in to create
+    a new test request context on the top of the stack. If, however, nothing
+    was passed in, we will assume that another app and/or  request context is
+    already in place and use that to run the test suite. If no app or request
+    context can be found, an AssertionError is emitted to let the user know
+    that they must somehow specify an application for testing.
+
     """
-    ctx = app.test_request_context()
-    ctx.fixtures_request_context = True
-    ctx.push()
-    if _app_ctx_stack is not None:
-        _app_ctx_stack.top.fixtures_app_context = True
+    if app is not None:
+        ctx = app.test_request_context()
+        ctx.fixtures_request_context = True
+        ctx.push()
+        if _app_ctx_stack is not None:
+            _app_ctx_stack.top.fixtures_app_context = True
+
+    # Make sure that we have an application in the current context
+    if (_app_ctx_stack is None or _app_ctx_stack.top is None) and _request_ctx_stack.top is None:
+        raise AssertionError('A Flask application must be specified for Fixtures to work.')
 
 
 def pop_ctx():
@@ -68,18 +83,26 @@ def pop_ctx():
 def setup(obj):
     log.info('setting up fixtures...')
 
-    # If there isn't an existing app (or request) context, create one and push
-    # it onto the stack and mark it with a flag identifying it as our own, so
-    # we know we can remove it later.
-    push_ctx(obj.app)
+    # Push a request and/or app context onto the stack
+    push_ctx(getattr(obj, 'app'))
 
     # Setup the database
     obj.db.create_all()
     # Rollback any lingering transactions
     obj.db.session.rollback()
 
+
+    # Construct a list of paths within which fixtures may reside
+    default_fixtures_dir = os.path.join(current_app.root_path, 'fixtures')
+
+    # All relative paths should be relative to the app's root directory.
+    fixtures_dirs = [default_fixtures_dir]
+    for directory in current_app.config.get('FIXTURES_DIRS', []):
+        if not os.path.isabs(directory):
+            directory = os.path.abspath(os.path.join(current_app.root_path, directory))
+        fixtures_dirs.append(directory)
+
     # Load all of the fixtures
-    fixtures_dirs = obj.app.config['FIXTURES_DIRS']
     for filename in obj.fixtures:
         for directory in fixtures_dirs:
             filepath = os.path.join(directory, filename)
@@ -95,9 +118,8 @@ def teardown(obj):
     log.info('tearing down fixtures...')
     obj.db.session.expunge_all()
     obj.db.drop_all()
-
-    # If our app is on the top of the stack
     pop_ctx()
+
 
 def load_fixtures(db, fixtures):
     """Loads the given fixtures into the database.
@@ -227,17 +249,6 @@ class MetaFixturesMixin(type):
 class FixturesMixin(six.with_metaclass(MetaFixturesMixin, object)):
 
     fixtures = None
+    app = None
+    db = None
 
-    @classmethod
-    def init_app(cls, app, db=None):
-        default_fixtures_dir = os.path.join(app.root_path, 'fixtures')
-
-        # All relative paths should be relative to the app's root directory.
-        fixtures_dirs = [default_fixtures_dir]
-        for directory in app.config.get('FIXTURES_DIRS', []):
-            if not os.path.isabs(directory):
-                directory = os.path.abspath(os.path.join(app.root_path, directory))
-            fixtures_dirs.append(directory)
-        app.config['FIXTURES_DIRS'] = fixtures_dirs
-        cls.app = app
-        cls.db = db

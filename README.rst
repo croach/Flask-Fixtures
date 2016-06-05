@@ -241,8 +241,6 @@ in the list and load each into the test database.
     # Configure the app with the testing configuration
     app.config.from_object('myapp.config.TestConfig')
 
-    # Initialize the Flask-Fixtures mixin class
-    FixturesMixin.init_app(app, db)
 
     # Make sure to inherit from the FixturesMixin class
     class TestFoo(unittest.TestCase, FixturesMixin):
@@ -251,6 +249,10 @@ in the list and load each into the test database.
         # Change the list below to ['authors.yaml'] if you created your fixtures
         # file using YAML instead of JSON.
         fixtures = ['authors.json']
+
+        # Specify the Flask app and db we want to use for this set of tests
+        app = app
+        db = db
 
         # Your tests go here
 
