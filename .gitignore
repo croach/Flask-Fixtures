@@ -7,3 +7,5 @@
 
 .tox
 .cache
+build
+dist
