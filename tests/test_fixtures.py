@@ -16,7 +16,7 @@ import unittest
 from myapp import app
 from myapp.models import db, Book, Author
 
-from flask.ext.fixtures import FixturesMixin
+from flask_fixtures import FixturesMixin
 
 # Configure the app with the testing configuration
 app.config.from_object('myapp.config.TestConfig')
