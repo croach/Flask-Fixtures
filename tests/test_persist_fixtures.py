@@ -29,8 +29,8 @@ import unittest
 from myapp import app
 from myapp.models import db, Book, Author
 
-from flask.ext.fixtures import FixturesMixin
-from flask.ext.fixtures.utils import can_persist_fixtures
+from flask_fixtures import FixturesMixin
+from flask_fixtures.utils import can_persist_fixtures
 
 # Configure the app with the testing configuration
 app.config.from_object('myapp.config.TestConfig')
