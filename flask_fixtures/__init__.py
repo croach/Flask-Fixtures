@@ -1,5 +1,5 @@
 """
-    flask.ext.fixtures
+    flask_fixtures
     ~~~~~~~~~~~~~~~~~~
 
     Flask-Fixtures is a `Flask <http://flask.pocoo.org>`_ extension that aids
