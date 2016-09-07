@@ -1,5 +1,5 @@
 """
-    flask.ext.fixtures.helpers
+    flask_fixtures.helpers
     ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Helper functions.
