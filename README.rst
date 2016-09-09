@@ -92,7 +92,7 @@ database models.
 
     # myapp/models.py
 
-    from flask.ext.sqlalchemy import SQLAlchemy
+    from flask_sqlalchemy import SQLAlchemy
 
     from myapp import app
 
@@ -236,7 +236,7 @@ in the list and load each into the test database.
     from myapp import app
     from myapp.models import db, Book, Author
 
-    from flask.ext.fixtures import FixturesMixin
+    from flask_fixtures import FixturesMixin
 
     # Configure the app with the testing configuration
     app.config.from_object('myapp.config.TestConfig')

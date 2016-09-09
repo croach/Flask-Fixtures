@@ -1,5 +1,5 @@
 """
-    flask.ext.fixtures.loaders
+    flask_fixtures.loaders
     ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Classes for loading serialized fixtures data.
