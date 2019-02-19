@@ -104,14 +104,7 @@ def setup(obj):
 
     # Load all of the fixtures
     for filename in obj.fixtures:
-        for directory in fixtures_dirs:
-            filepath = os.path.join(directory, filename)
-            if os.path.exists(filepath):
-                # TODO load the data into the database
-                load_fixtures(obj.db, loaders.load(filepath))
-                break
-        else:
-            raise IOError("Error loading '{0}'. File could not be found".format(filename))
+        load_fixtures_from_file(obj.db, filename, fixtures_dirs)
 
 
 def teardown(obj):
@@ -119,6 +112,19 @@ def teardown(obj):
     obj.db.session.expunge_all()
     obj.db.drop_all()
     pop_ctx()
+
+
+def load_fixtures_from_file(db, fixture_filename, fixtures_dirs=[]):
+    fixtures_dirs = set(fixtures_dirs)
+    fixtures_dirs.add('.')
+    for directory in fixtures_dirs:
+        filepath = os.path.join(directory, fixture_filename)
+        if os.path.exists(filepath):
+            # TODO load the data into the database
+            load_fixtures(db, loaders.load(filepath))
+            break
+    else:
+        raise IOError("Error loading '{0}'. File could not be found".format(fixture_filename))
 
 
 def load_fixtures(db, fixtures):
@@ -251,4 +257,3 @@ class FixturesMixin(six.with_metaclass(MetaFixturesMixin, object)):
     fixtures = None
     app = None
     db = None
-
