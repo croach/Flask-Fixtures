@@ -9,3 +9,6 @@
 .cache
 build
 dist
+
+.vscode
+venv
